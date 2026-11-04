@@ -54,7 +54,6 @@
 .personal-form .tag-choices { margin-top: 20px; }
 .tag-choices label, .genre-choices label { display: inline-flex; align-items: center; gap: 8px; margin: 0 18px 10px 0; min-height: 34px; font-size: 13px; }
 input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; flex-shrink: 0; }
-.action-success { color: var(--accent); }
 button:disabled { opacity: .6; cursor: wait; }
 .dismiss-form { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; }
 .library-links { display: flex; flex-wrap: wrap; gap: 15px 24px; margin: 20px 0; font-size: 13px; }
@@ -79,3 +78,22 @@ button:disabled { opacity: .6; cursor: wait; }
   .personal-form .button { width: 100%; }
   .library-filters > div:first-child { flex: 1 1 100%; }
 }
+.settings-ai { border-top: 1px solid var(--line); padding: 28px 0; }
+.settings-ai h2 { font-size: 20px; }
+.ai-form { margin: 18px 0; display: grid; gap: 12px; min-width: 0; }
+.ai-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 12px; }
+.ai-form legend { font-weight: 600; margin-bottom: 10px; }
+.ai-form label { font-size: 13px; }
+.ai-form input:not([type=checkbox]), .ai-form select, .ai-form textarea { width: 100%; min-height: 48px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; font: inherit; }
+.ai-form :is(input, select, textarea):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.ai-form .button { justify-self: start; }
+.verdict-form { border-top: 1px solid var(--line); padding-top: 20px; }
+.disclosure { margin: 0; padding-left: 20px; font-size: 13px; color: var(--muted); }
+.consent-check { display: flex; align-items: start; gap: 10px; }
+.finder-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.finder-fields label { display: block; margin-bottom: 6px; }
+.ai-results { list-style: none; padding: 0; }
+.ai-results h3 { overflow-wrap: anywhere; }
+.danger-zone { margin: 24px 0; }
+.danger-zone summary { cursor: pointer; min-height: 30px; }
+@media(max-width: 700px) { .finder-fields { grid-template-columns: 1fr; } .ai-form .button { width: 100%; } }

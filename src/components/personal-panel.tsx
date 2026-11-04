@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
+import { aiAvailability } from "@/lib/ai";
+import { TASTE_BUDGET } from "@/lib/ai-contract";
+import { VerdictForm } from "./ai-controls";
 import { personalTitle } from "@/lib/library";
 import { PersonalControls, DismissControl } from "./personal-controls";
 import type { MediaType } from "@/lib/catalog";
@@ -11,5 +15,6 @@ export async function PersonalPanel({ mediaType, id }: { mediaType: MediaType; i
   return <section className="personal-panel" aria-label="Your library"><h2>Your library</h2>
     <PersonalControls mediaType={mediaType} id={id} entry={personal.entry} />
     <DismissControl mediaType={mediaType} id={id} dismissed={personal.dismissed} />
+    {await aiAvailability() === "ok" && <VerdictForm mediaType={mediaType} id={id} requestKey={randomUUID()} budget={TASTE_BUDGET} />}
   </section>;
 }

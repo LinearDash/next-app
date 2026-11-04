@@ -1,6 +1,6 @@
 # Is It Worth It? — Next.js
 
-Phase 3 personal library MVP. Read `../REBUILD_PLAN.md` and `../PHASES.md` before continuing.
+Phase 5: catalog, personal library, non-AI recommendations, and an optional Gemini key vault plus AI features. Read `../REBUILD_PLAN.md` and `../PHASES.md` before continuing.
 
 ## Local start
 
@@ -39,7 +39,7 @@ Browser suite uses a separate production build containing only fictional test cr
 
 Migrations cover profiles, library and dismissals with owner-leading unique indexes, constraints, profile creation trigger, cascades and RLS. Provider vault, results and atomic request-limit migrations belong to phase 5. Profile consent columns are not writable by browser roles; no consent flow exists yet.
 
-Security headers are a baseline. Nonce CSP, complete privacy/deletion flows, quotas, provider behavior and release security checks remain in later phases. TMDB catalog requests are server-only; no Gemini requests exist yet.
+Security headers are a baseline. Nonce CSP, complete privacy/deletion flows and release security checks remain in later phases. TMDB and Gemini requests are server-only.
 
 ## Catalog setup and routes
 
@@ -78,3 +78,22 @@ Phase 3 uses the existing phase-1 migration; no new SQL or environment variables
 Library metadata is fetched from TMDB in batches of four. During an outage, fallback media/ID labels preserve the ability to edit/remove existing entries. Personal responses and Supabase SDK requests are no-store; session verification runs on every private page/action. See `docs/library-contract.md` for behavior and live checks.
 
 The local Supabase stand-in uses fictional sessions and an owner-scoped Auth/PostgREST subset; browser tests exercise actual SSR SDK requests and Server Actions, while PostgreSQL tests separately enforce the real migration's RLS/constraints. This does not establish hosted Supabase isolation. Before accepting the live phase, use two real Google accounts to verify library/prefs/dismissal isolation, reload on another physical device, logout/expiry and no cached private data. Automated tests never write to the real project.
+
+## Recommendations (phase 4)
+
+`/for-you` has separate movie and TV suggestions based on a plain genre heuristic over your reactions and chosen genres. It needs no AI key. See `docs/recommendations-contract.md`.
+
+## Gemini key vault and AI (phase 5, optional)
+
+1. Apply `supabase/migrations/202611050002_ai.sql` to the **development** project, after the foundation migration.
+2. In your ignored env file, set:
+   - `GEMINI_ENABLED=1`
+   - `GEMINI_ALLOWED_COUNTRIES=*` (accepted only in local development; production needs explicit country codes)
+   - `GEMINI_KEY_ENCRYPTION_KEYS=v1:<32 random bytes, base64>`
+
+   See `.env.example`, and use different values in every environment.
+3. Restart. In Settings → AI & privacy, accept the notice and paste your own Gemini API key. Then use "Ask for a verdict" on a title page, or `/ai/find`. Saved results are at `/ai`.
+
+AI is off unless every setting above is valid. Setting `GEMINI_ENABLED=0` is the kill switch. Automated tests never call Gemini: they use the dummy key against the local stand-in, and the app refuses to send any other key there. See `docs/ai-contract.md` for the vault, eligibility, limits, errors and the live checklist.
+
+Browser checks need the Postman stand-ins for Supabase, TMDB and Gemini (`postman/simulations/catalog.sim.yaml`). If Playwright's browsers live outside the default cache, set `PLAYWRIGHT_BROWSERS_PATH`.

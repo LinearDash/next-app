@@ -8,9 +8,9 @@ const genres = { 42: [{ id: 18, name: "Drama" }], 43: [{ id: 35, name: "Comedy" 
 function listed(item) { const { genres: full, ...rest } = item; return { ...rest, genre_ids: full.map(genre => genre.id) }; }
 function title(type, id = 42) {
   const common = { id, adult: false, overview: "A keeper searches for a missing ship. <script>window.catalogInjected=true</script>",
-    poster_path: id === 42 ? "/broken-poster.jpg" : null, vote_average: 7.8, vote_count: 321, original_language: "en", genres: genres[id] };
-  return type === "movie" ? { ...common, title: names.movie[id], release_date: "2024-03-15", runtime: 112 }
-    : { ...common, name: names.tv[id], first_air_date: "2023-06-20", number_of_seasons: 3 };
+    poster_path: id === 42 ? "/broken-poster.jpg" : null, vote_average: 7.8, vote_count: 321, original_language: "en", genres: genres[id] || [{ id: 18, name: "Drama" }] };
+  return type === "movie" ? { ...common, title: names.movie[id] || `Archive Movie ${id}`, release_date: "2024-03-15", runtime: 112 }
+    : { ...common, name: names.tv[id] || `Archive Series ${id}`, first_air_date: "2023-06-20", number_of_seasons: 3 };
 }
 
 http.createServer(async (req, res) => {
@@ -32,10 +32,13 @@ http.createServer(async (req, res) => {
   if (/^\/3\/genre\/(movie|tv)\/list$/.test(url.pathname)) return send(200, { genres: [{ id: 18, name: "Drama" }, { id: 35, name: "Comedy" }] });
   const discover = /^\/3\/discover\/(movie|tv)$/.exec(url.pathname);
   if (discover) {
-    if (url.searchParams.get("include_adult") !== "false" || url.searchParams.get("sort_by") !== "popularity.desc" || !/^[1-9]\d*(\|[1-9]\d*)*$/.test(url.searchParams.get("with_genres") || "")) return send(400, { status_message: "Invalid discover parameters" });
-    const wanted = url.searchParams.get("with_genres").split("|").map(Number);
-    const results = [44, 43, 42].filter(id => genres[id].some(genre => wanted.includes(genre.id))).map(id => listed(title(discover[1], id)));
-    return send(200, { page: 1, results, total_pages: 1, total_results: results.length });
+    if (url.searchParams.get("include_adult") !== "false" || url.searchParams.get("sort_by") !== "popularity.desc" || !/^([1-9]\d*(\|[1-9]\d*)*)?$/.test(url.searchParams.get("with_genres") || "")) return send(400, { status_message: "Invalid discover parameters" });
+    const wanted = (url.searchParams.get("with_genres") || "").split("|").filter(Boolean).map(Number);
+    const page = Number(url.searchParams.get("page") || "1");
+    // Only English fixtures exist, so any other original language yields no candidates.
+    const english = ["en", null].includes(url.searchParams.get("with_original_language"));
+    const results = page !== 1 || !english ? [] : [44, 43, 42].filter(id => !wanted.length || genres[id].some(genre => wanted.includes(genre.id))).map(id => listed(title(discover[1], id)));
+    return send(200, { page, results, total_pages: 1, total_results: results.length });
   }
   const match = /^\/3\/(?:(search)\/)?(movie|tv)\/(popular|[1-9]\d*)$/.exec(url.pathname)
     || /^\/3\/(search)\/(movie|tv)$/.exec(url.pathname);
@@ -54,7 +57,7 @@ http.createServer(async (req, res) => {
   if (url.searchParams.get("language") !== "en-US") return send(400, { status_message: "Missing language" });
   if (isSearch && (!query || url.searchParams.get("include_adult") !== "false")) return send(400, { status_message: "Invalid search parameters" });
   if (action && action !== "popular") {
-    if (!["42", "43", "44", "999"].includes(action)) return send(404, { status_code: 34, status_message: "Resource not found" });
+    if (!["42", "43", "44", "999"].includes(action) && !(Number(action) >= 1000 && Number(action) < 2000)) return send(404, { status_code: 34, status_message: "Resource not found" });
     return send(200, title(type, action === "999" ? 42 : Number(action)));
   }
   const page = Number(url.searchParams.get("page") || "1");

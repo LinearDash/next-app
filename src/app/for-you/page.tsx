@@ -16,7 +16,7 @@ export const metadata = { title: "For you", robots: { index: false, follow: fals
 const RATED_SAMPLE = 24;
 
 async function candidates(type: MediaType, top: number[]) {
-  const [matched, fallback] = await Promise.all([top.length ? discover(type, top).catch(() => null) : null, popular(type).catch(() => null)]);
+  const [matched, fallback] = await Promise.all([top.length ? discover(type, { genreIds: top }).catch(() => null) : null, popular(type).catch(() => null)]);
   if (!matched && !fallback) throw new Error("Catalog unavailable");
   return [...(matched?.titles ?? []), ...(fallback?.titles ?? [])];
 }
@@ -58,7 +58,7 @@ export default async function ForYou() {
       : !known.length && <p className="notice" role="status">Based on the genres you chose. Rate titles you’ve seen to refine these suggestions.</p>}
     {ratedEntries.length === RATED_SAMPLE && <p className="muted small">Using your {RATED_SAMPLE} most recently updated ratings.</p>}
     {known.length < ratedEntries.length && <p className="muted small">Some rated titles couldn’t be loaded from the catalog and were left out this time.</p>}
-    <div className="library-links"><Link href="/library">Your library</Link><Link href="/library?view=dismissed">Not interested</Link><Link href="/onboarding">Taste preferences</Link></div>
+    <div className="library-links"><Link href="/library">Your library</Link><Link href="/library?view=dismissed">Not interested</Link><Link href="/onboarding">Taste preferences</Link><Link href="/ai/find">Find me a movie with Gemini</Link></div>
     {types.map((type, index) => <section className="catalog-section" key={type} aria-labelledby={`for-you-${type}`}>
       <h2 id={`for-you-${type}`}>{type === "movie" ? "Movies for you" : "TV series for you"}</h2>
       {picks[index] ? <PickList picks={picks[index]} /> : <CatalogNotice retry="/for-you" />}

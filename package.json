@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --conditions=react-server --test tests/*.test.mjs",
     "test:browser": "playwright test",
     "build:test": "node scripts/build-browser.mjs"
   },

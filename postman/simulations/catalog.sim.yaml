@@ -9,3 +9,8 @@ mocks:
   - name: supabase
     routeKey: supabase
     path: postman/mocks/supabase
+  - name: gemini
+    routeKey: gemini
+    origin:
+      - generativelanguage.googleapis.com
+    path: postman/mocks/gemini

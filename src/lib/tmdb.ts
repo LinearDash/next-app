@@ -71,11 +71,21 @@ export async function popular(mediaType: MediaType) {
   try { return parseList(value, mediaType); } catch { throw new CatalogError("unavailable"); }
 }
 
-export async function discover(mediaType: MediaType, genreIds: number[]) {
+const discoverSchema = z.object({
+  genreIds: z.array(z.number().int().positive().max(999999)).max(5).default([]),
+  language: z.string().regex(/^[a-z]{2}$/).optional(),
+  maxRuntime: z.number().int().min(60).max(240).optional(),
+  page: z.number().int().min(1).max(3).default(1),
+});
+
+export async function discover(mediaType: MediaType, options: z.input<typeof discoverSchema>) {
   mediaTypeSchema.parse(mediaType);
-  const ids = z.array(z.number().int().positive().max(999999)).min(1).max(5).parse(genreIds);
+  const { genreIds, language, maxRuntime, page } = discoverSchema.parse(options);
   // "|" means any of these genres; a vote floor keeps obscure, unrated titles out of suggestions.
-  const params = new URLSearchParams({ with_genres: ids.join("|"), sort_by: "popularity.desc", include_adult: "false", "vote_count.gte": "50", page: "1" });
+  const params = new URLSearchParams({ sort_by: "popularity.desc", include_adult: "false", "vote_count.gte": "50", page: String(page) });
+  if (genreIds.length) params.set("with_genres", genreIds.join("|"));
+  if (language) params.set("with_original_language", language);
+  if (maxRuntime && mediaType === "movie") params.set("with_runtime.lte", String(maxRuntime));
   const value = await request(`/discover/${mediaType}`, params, 3600);
   try { return parseList(value, mediaType); } catch { throw new CatalogError("unavailable"); }
 }
