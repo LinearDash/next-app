@@ -45,6 +45,7 @@ export async function changeEntry(_previous: ActionState, form: FormData): Promi
   }
   revalidatePath("/library");
   revalidatePath("/onboarding");
+  revalidatePath("/for-you");
   revalidatePath(`/title/${mediaType}/${id}`);
   return { ok: true, message };
 }
@@ -69,5 +70,6 @@ export async function savePreferences(_previous: ActionState, form: FormData): P
   revalidatePath("/settings");
   revalidatePath("/library");
   revalidatePath("/onboarding");
+  revalidatePath("/for-you");
   redirect("/library");
 }

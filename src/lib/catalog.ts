@@ -18,6 +18,7 @@ const common = {
   vote_count: z.number().int().nonnegative(),
   adult: z.boolean().optional(),
   original_language: z.string().max(16).optional(),
+  genre_ids: z.array(z.number().int().positive()).max(20).optional(),
 };
 const movieSchema = z.object({ ...common, title: z.string().trim().min(1).max(500), release_date: z.string().max(10).optional() });
 const tvSchema = z.object({ ...common, name: z.string().trim().min(1).max(500), first_air_date: z.string().max(10).optional() });
@@ -29,16 +30,17 @@ const tvDetailSchema = tvSchema.extend({ ...detailFields, number_of_seasons: z.n
 
 export type CatalogTitle = {
   id: number; mediaType: MediaType; title: string; date: string; overview: string;
-  posterPath: string | null; communityScore: number; voteCount: number; language: string;
+  posterPath: string | null; communityScore: number; voteCount: number; language: string; genreIds: number[];
 };
 export type CatalogDetail = CatalogTitle & { genres: string[]; runtime: number | null; seasons: number | null };
 
-function normalize(raw: z.infer<typeof movieSchema> | z.infer<typeof tvSchema>, mediaType: MediaType): CatalogTitle {
+function normalize(raw: (z.infer<typeof movieSchema> | z.infer<typeof tvSchema>) & { genres?: { id: number }[] }, mediaType: MediaType): CatalogTitle {
   return {
     id: raw.id, mediaType, title: "title" in raw ? raw.title : raw.name,
     date: ("release_date" in raw ? raw.release_date : "first_air_date" in raw ? raw.first_air_date : "") || "",
     overview: raw.overview, posterPath: raw.poster_path,
     communityScore: raw.vote_average, voteCount: raw.vote_count, language: raw.original_language || "",
+    genreIds: raw.genres?.map(genre => genre.id) ?? raw.genre_ids ?? [],
   };
 }
 

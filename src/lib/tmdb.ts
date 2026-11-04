@@ -71,6 +71,15 @@ export async function popular(mediaType: MediaType) {
   try { return parseList(value, mediaType); } catch { throw new CatalogError("unavailable"); }
 }
 
+export async function discover(mediaType: MediaType, genreIds: number[]) {
+  mediaTypeSchema.parse(mediaType);
+  const ids = z.array(z.number().int().positive().max(999999)).min(1).max(5).parse(genreIds);
+  // "|" means any of these genres; a vote floor keeps obscure, unrated titles out of suggestions.
+  const params = new URLSearchParams({ with_genres: ids.join("|"), sort_by: "popularity.desc", include_adult: "false", "vote_count.gte": "50", page: "1" });
+  const value = await request(`/discover/${mediaType}`, params, 3600);
+  try { return parseList(value, mediaType); } catch { throw new CatalogError("unavailable"); }
+}
+
 export async function search(input: { q: string; type?: string; page?: string }) {
   const parsed = searchSchema.safeParse(input);
   if (!parsed.success) throw new CatalogError("invalid");
