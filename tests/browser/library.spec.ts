@@ -1,5 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { service, alice, bob, session } from "./session";
+
+// Library shelf: selecting a poster opens the side editor for that title.
+async function openEditor(page: Page, name: string) {
+  await page.getByRole('link', { name: `Edit ${name}` }).click();
+  await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+}
 
 test.beforeEach(async ({ page, request }) => {
   await request.post(`${service}/__control`);
@@ -26,7 +32,7 @@ test('save/edit/remove persist across refresh and a second device with isolated 
   await session(device);
   const other = await device.newPage();
   await other.goto('http://127.0.0.1:3417/library');
-  await expect(other.getByRole('heading', { name: 'The Last Lighthouse' })).toBeVisible();
+  await openEditor(other, 'The Last Lighthouse');
   await expect(other.getByLabel('Your reaction', { exact: true })).toHaveValue('5');
   await device.close();
 
@@ -53,9 +59,9 @@ test('save/edit/remove persist across refresh and a second device with isolated 
   await page.getByRole('button', { name: 'Save to library', exact: true }).click();
   await expect(page.getByText('Saved to your library.', { exact: true })).toBeVisible();
   await page.goto('/library?reaction=unrated&status=watched&type=movie');
-  await expect(page.getByRole('heading', { name: 'The Last Lighthouse' })).toBeVisible();
+  await openEditor(page, 'The Last Lighthouse');
   await expect(page.getByLabel('Your reaction', { exact: true })).toHaveValue('');
-  await page.getByRole('button', { name: 'Remove from library' }).click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(page.getByText(/No saved titles match/)).toBeVisible();
   expect((await (await request.get(`${service}/__state`)).json()).entries.map((entry: { owner: string }) => entry.owner)).toEqual([bob]);
 });
@@ -72,13 +78,14 @@ test('movie/TV identity, filters and reversible dismissal keep personal ratings'
   await expect(page.getByText('Marked not interested. You can undo this in your library.')).toBeVisible();
   await expect(page.getByLabel('Your reaction', { exact: true })).toHaveValue('2');
   await page.goto('/library?type=movie&reaction=4');
-  await expect(page.getByRole('heading', { name: 'The Last Lighthouse' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Lighthouse Diaries' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /The Last Lighthouse/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Lighthouse Diaries/ })).toHaveCount(0);
   await page.goto('/library?view=dismissed');
-  await expect(page.getByRole('heading', { name: 'Lighthouse Diaries' })).toBeVisible();
+  await openEditor(page, 'Lighthouse Diaries');
   await page.getByRole('button', { name: 'Undo not interested' }).click();
   await expect(page.getByText('You haven’t dismissed any matching titles.')).toBeVisible();
   await page.goto('/library?type=tv');
+  await openEditor(page, 'Lighthouse Diaries');
   await expect(page.getByLabel('Your reaction', { exact: true })).toHaveValue('2');
 });
 
@@ -138,10 +145,10 @@ for (const width of [320, 768, 1440]) {
     await page.goto('/title/movie/42');
     await page.getByRole('button', { name: 'Save to library', exact: true }).click();
     await expect(page.getByText('Saved to your library.', { exact: true })).toBeVisible();
-    for (const path of ['/library', '/onboarding']) {
+    for (const path of ['/library?edit=movie-42', '/onboarding']) {
       await page.goto(path);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(path === '/library' ? 'Your library.' : 'Start with what you love.');
-      await expect(page.getByRole('button', { name: path === '/library' ? 'Save to library' : 'Skip for now', exact: true }).first()).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(path !== '/onboarding' ? 'Your library.' : 'Start with what you love.');
+      await expect(page.getByRole('button', { name: path !== '/onboarding' ? 'Save' : 'Skip for now', exact: true }).first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       const response = await context.request.get(`http://127.0.0.1:3417${path}`);
       expect(response.headers()['cache-control']).toContain('no-store');
@@ -159,15 +166,15 @@ test('catalog outage keeps existing entries editable and removable', async ({ pa
   await expect(page.getByText('Saved to your library.', { exact: true })).toBeVisible();
   await request.post('http://127.0.0.1:4519/tmdb/__control?mode=partial');
   await page.goto('/library');
-  await expect(page.getByRole('heading', { name: 'Movie #42' })).toBeVisible();
+  await openEditor(page, 'Movie #42');
   await page.getByLabel('Watch status').selectOption('dropped');
   await page.getByLabel('Your reaction', { exact: true }).selectOption('2');
-  await page.getByRole('button', { name: 'Save to library', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved to your library.', { exact: true })).toBeVisible();
   const state = await (await request.get(`${service}/__state`)).json();
   expect(state.entries[0].status).toBe('dropped');
   expect(state.entries[0].reaction).toBe(2);
-  await page.getByRole('button', { name: 'Remove from library' }).click();
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(page.getByText(/No saved titles match/)).toBeVisible();
 });
 
@@ -194,4 +201,18 @@ test('unknown genre IDs are rejected without changing private preferences', asyn
   await expect(page.getByRole('alert').filter({ hasText: 'Please choose genres from the available list.' })).toBeVisible();
   const state = await (await request.get(`${service}/__state`)).json();
   expect(state.profiles.find((profile: { owner: string }) => profile.owner === alice).genre_preferences).toEqual([]);
+});
+
+test('selecting a poster on a phone brings the editor into view and focuses it', async ({ page, context, request }) => {
+  await request.post(`${service}/__seed?kind=ratings&owner=${alice}&count=8`);
+  await session(context);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/library');
+  await expect(page.locator('#editor')).toBeHidden(); // no empty panel on phones
+  await page.getByRole('link', { name: /Edit Archive Movie 1006/ }).click();
+  const heading = page.getByRole('heading', { level: 2, name: 'Archive Movie 1006' });
+  await expect(heading).toBeInViewport();
+  await expect(heading).toBeFocused();
+  await expect(page.getByRole('link', { name: /Edit Archive Movie 1006/ })).toHaveAttribute('aria-current', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

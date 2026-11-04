@@ -6,20 +6,21 @@ import { statuses, statusLabels, reactionLabels, tags, type PersonalEntry, type 
 
 const initial: ActionState = { ok: false, message: "" };
 
-export function PersonalControls({ mediaType, id, entry }: { mediaType: "movie" | "tv"; id: number; entry: PersonalEntry | null }) {
+// compact: the library side editor (pill tags, short actions, no helper copy).
+export function PersonalControls({ mediaType, id, entry, compact = false }: { mediaType: "movie" | "tv"; id: number; entry: PersonalEntry | null; compact?: boolean }) {
   const [state, action, pending] = useActionState(changeEntry, initial);
   const uid = useId();
   const [status, setStatus] = useState(entry?.status || "want_to_watch");
   const [reaction, setReaction] = useState(String(entry?.reaction ?? ""));
   const [selectedTags, setSelectedTags] = useState(entry?.tags || []);
   // React action forms reset automatically; keep edits intact when the server reports failure.
-  return <form action={action} onReset={event => event.preventDefault()} className="personal-form" aria-label="Personal library entry">
+  return <form action={action} onReset={event => event.preventDefault()} className={compact ? "personal-form compact" : "personal-form"} aria-label="Personal library entry">
     <input type="hidden" name="mediaType" value={mediaType} /><input type="hidden" name="id" value={id} />
-    <fieldset disabled={pending}><legend>Your personal reaction</legend><p className="small muted">You can rate before finishing, or save without a rating.</p>
+    <fieldset disabled={pending}><legend className={compact ? "sr-only" : undefined}>Your personal reaction</legend>{!compact && <p className="small muted">You can rate before finishing, or save without a rating.</p>}
       <div className="personal-fields"><div><label htmlFor={`${uid}-status`}>Watch status</label><select id={`${uid}-status`} name="status" value={status} onChange={event => setStatus(event.target.value as PersonalEntry["status"])}>{statuses.map(status => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></div>
       <div><label htmlFor={`${uid}-reaction`}>Your reaction</label><select id={`${uid}-reaction`} name="reaction" value={reaction} onChange={event => setReaction(event.target.value)}><option value="">Not rated</option>{reactionLabels.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</select></div></div>
-      <fieldset className="tag-choices"><legend>Optional descriptive tags</legend>{tags.map(tag => <label key={tag}><input name="tags" type="checkbox" value={tag} checked={selectedTags.includes(tag)} onChange={event => setSelectedTags(event.target.checked ? [...selectedTags, tag] : selectedTags.filter(value => value !== tag))} />{tag}</label>)}</fieldset>
-      <div className="actions"><button className="button primary" name="intent" value="save">{pending ? "Saving…" : "Save to library"}</button>{entry && <button className="button secondary" name="intent" value="remove">Remove from library</button>}</div>
+      <fieldset className={compact ? "tag-choices tag-pills" : "tag-choices"}><legend>{compact ? "Tags" : "Optional descriptive tags"}</legend>{tags.map(tag => <label key={tag}><input name="tags" type="checkbox" value={tag} checked={selectedTags.includes(tag)} onChange={event => setSelectedTags(event.target.checked ? [...selectedTags, tag] : selectedTags.filter(value => value !== tag))} />{tag}</label>)}</fieldset>
+      <div className="actions"><button className="button primary" name="intent" value="save">{pending ? "Saving…" : compact ? "Save" : "Save to library"}</button>{entry && <button className={compact ? "link-button" : "button secondary"} name="intent" value="remove">{compact ? "Remove" : "Remove from library"}</button>}</div>
     </fieldset>
     {state.message && <p role={state.ok ? "status" : "alert"} className={state.ok ? "action-success" : "notice"}>{state.message}</p>}
   </form>;

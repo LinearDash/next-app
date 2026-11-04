@@ -4,7 +4,7 @@ Private pages and Server Actions use the existing Supabase user-scoped SSR clien
 
 ## Surfaces
 
-- `/library`: authenticated, no-store, 12 entries/page; media/status/reaction filters and a separate dismissed view. Empty and service-error states. Metadata resolved from trusted TMDB in batches of at most four; if TMDB is down, entries remain editable/removable using media type and catalog ID as fallback labels.
+- `/library`: authenticated, no-store, 20 entries/page as a poster shelf; selecting a poster (`?edit=<media>-<id>`) opens a side editor; media/status/reaction filters and a separate dismissed view. Empty and service-error states. Metadata resolved from trusted TMDB in batches of at most four; if TMDB is down, entries remain editable/removable using media type and catalog ID as fallback labels.
 - Title detail: public catalog remains available while personal panel independently verifies identity. Signed-in users can save/edit status, reaction, controlled tags, remove an entry, dismiss or restore the title. Signed-out users get a login link.
 - `/onboarding`: optional genre preferences and roughly five suggested titles to rate; no minimum rating count is enforced. Clear skip action. Completion means saved or explicitly skipped; can revisit from library/settings.
 - Settings: links to library and editable taste preferences.

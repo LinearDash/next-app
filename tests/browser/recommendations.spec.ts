@@ -60,6 +60,7 @@ test("reactions drive explained picks; watched, dismissed and disliked titles ar
   await other.close();
 
   await page.goto("/library?view=dismissed");
+  await page.getByRole("link", { name: "Edit Laugh Track" }).click();
   await page.getByRole("button", { name: "Undo not interested" }).click();
   await expect(page.getByText("You haven’t dismissed any matching titles.")).toBeVisible();
   await page.goto("/for-you");

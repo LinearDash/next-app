@@ -22,6 +22,8 @@ export const libraryFiltersSchema = z.object({
   status: z.enum(["all", ...statuses]).default("all"),
   reaction: z.enum(["all", "unrated", "1", "2", "3", "4", "5"]).default("all"),
   page: z.string().regex(/^[1-9]\d{0,4}$/).default("1").transform(Number).pipe(z.number().max(10000)),
+  // Selected title for the side editor, e.g. "movie-42".
+  edit: z.string().regex(/^(movie|tv)-[1-9]\d{0,9}$/).optional(),
 });
 export const preferencesSchema = z.array(z.string().regex(/^[1-9]\d{0,5}$/).transform(Number)).max(30)
   .refine(values => new Set(values).size === values.length);
