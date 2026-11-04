@@ -1,0 +1,8 @@
+simulation: catalog
+routing: path
+mocks:
+  - name: tmdb
+    routeKey: tmdb
+    origin:
+      - api.themoviedb.org
+    path: postman/mocks/tmdb

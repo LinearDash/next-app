@@ -1,0 +1,1 @@
+export default function Loading() { return <section className="account-panel" role="status"><p className="eyebrow">A MOMENT, PLEASE</p><h1>Setting<br /><em>the scene.</em></h1><p>Loading your next chapter…</p></section>; }

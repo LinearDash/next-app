@@ -1,0 +1,30 @@
+purpose:
+  stands_in_for: TMDB v3 popular, search and movie/TV detail reads.
+  unblocks: Local phase 2 verification without real credentials or live catalog calls.
+assumptions:
+  - id: tmdb-shapes
+    status: supported
+    claim: TMDB v3 exposes separate movie and TV reads with page-based search results and Bearer authentication.
+    reason: Official TMDB references and Orbit TV integration brief describe these contracts; fictional fixtures model only the fields used by this app.
+    verification: Read provider documentation on 2026-11-05. Real service compatibility has not been exercised in this phase.
+    source: docs/catalog-contract.md; https://developer.themoviedb.org/reference/search-tv; https://developer.themoviedb.org/reference/movie-details
+    updated_at: "2026-11-05"
+  - id: caller-recovery
+    status: supported
+    claim: In the exercised stand-in scenarios the app preserves usable navigation and safe recovery on upstream failures.
+    reason: The production Next.js app was exercised over HTTP against the local Postman simulation, and sanitized stand-in request records confirmed paths, encoded queries and dummy Bearer authentication.
+    verification: On 2026-11-05 all 19 browser checks passed, including upstream 401/429/503, malformed JSON/schema, 1-MiB overflow, six-second timeout, partial popular-list outage, restored-service retry, early-image failure before delayed hydration, 404 and mismatched detail identity. This establishes caller behavior under these fixtures, not live provider compatibility.
+    source: tests/browser/catalog.spec.ts; postman/mocks/tmdb/default.js
+    updated_at: "2026-11-05"
+  - id: live-credential
+    status: contradicted
+    claim: The currently configured application token authorizes live TMDB catalog reads.
+    reason: A separate manual status-only request to the real provider returned HTTP 401.
+    verification: On 2026-11-05 the normal app showed catalog recovery on discovery and movie/TV searches; a direct GET /3/movie/popular with the configured Bearer token returned 401. No token or raw error body was logged. Requires replacement and a new live check.
+    source: PHASES.md at repository root; docs/catalog-contract.md
+    updated_at: "2026-11-05"
+fingerprints:
+  - id: phase-2-working-tree
+    date: "2026-11-05"
+    commit: "7ac94954edbca2aa39a42e2585d72ade5e4244b7 (dirty phase 1/2 working tree)"
+    cli: "1.76.0"
