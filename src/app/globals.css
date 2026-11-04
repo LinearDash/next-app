@@ -42,3 +42,40 @@
   .catalog-search > div { flex: 1 1 100%; }
   .catalog-search > button { width: 100%; }
 }
+
+/* Phase 3: private library and optional onboarding. */
+.personal-panel { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 24px; }
+.personal-form fieldset, .preferences-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.personal-form legend, .preferences-form legend { font-weight: 600; margin-bottom: 10px; }
+.personal-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.personal-fields label { display: block; font-size: 12px; margin-bottom: 5px; }
+.personal-fields select { width: 100%; padding: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 5px; font: inherit; min-height: 46px; }
+.personal-fields select:focus-visible, input[type=checkbox]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.personal-form .tag-choices { margin-top: 20px; }
+.tag-choices label, .genre-choices label { display: inline-flex; align-items: center; gap: 8px; margin: 0 18px 10px 0; min-height: 34px; font-size: 13px; }
+input[type=checkbox] { accent-color: var(--accent); width: 18px; height: 18px; flex-shrink: 0; }
+.action-success { color: var(--accent); }
+button:disabled { opacity: .6; cursor: wait; }
+.dismiss-form { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; }
+.library-links { display: flex; flex-wrap: wrap; gap: 15px 24px; margin: 20px 0; font-size: 13px; }
+.library-links a, .library-card h3 a { text-decoration: underline; text-underline-offset: 4px; }
+.library-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.library-card { border: 1px solid var(--line); border-radius: 7px; padding: 24px; margin-bottom: 20px; min-width: 0; }
+.library-summary { display: flex; align-items: start; gap: 18px; margin-bottom: 24px; }
+.library-summary > .poster { width: 75px; flex-shrink: 0; }
+.library-summary h3 { font-size: 20px; overflow-wrap: anywhere; }
+.library-summary p { font-size: 12px; }
+.library-filters > div:first-child { flex: 0 1 auto; }
+.preferences-form { padding: 24px 0; }
+.genre-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.onboarding-titles { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 30px; }
+@media(max-width: 900px) { .library-list { grid-template-columns: 1fr; } }
+@media(max-width: 700px) {
+  .header { flex-wrap: wrap; }
+  .header nav { flex-wrap: wrap; }
+  .personal-fields, .genre-choices { grid-template-columns: 1fr; }
+  .library-card { padding: 18px; }
+  .personal-form .actions { gap: 12px; }
+  .personal-form .button { width: 100%; }
+  .library-filters > div:first-child { flex: 1 1 100%; }
+}

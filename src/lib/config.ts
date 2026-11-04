@@ -5,7 +5,8 @@ export function supabaseConfig() {
   try {
     const parsed = new URL(url);
     if (!["http:", "https:"].includes(parsed.protocol)) return null;
-    return { url: parsed.origin, key };
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null;
+    return { url: parsed.href.replace(/\/$/, ""), key };
   } catch {
     return null;
   }

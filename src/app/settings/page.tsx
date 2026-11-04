@@ -20,7 +20,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
     {params.error === "logout" && <p className="notice" role="alert">We couldn’t finish signing you out. Please try again.</p>}
     <div className="settings-row"><div><h2>Signed in with Google</h2><p className="muted">{result.data.user.email}</p></div><form action={signOut}><button className="button secondary">Sign out</button></form></div>
     {error && <p className="notice" role="alert">Your profile could not be loaded. Try refreshing in a moment.</p>}
-    <div className="settings-row"><div><h2>Your preferences</h2><p className="muted">{profile?.onboarding_completed ? "Your onboarding is complete." : "Optional taste onboarding arrives with your personal library."}</p></div><span className="pill">Phase 3</span></div>
+    <div className="settings-row"><div><h2>Your preferences</h2><p className="muted">{profile?.onboarding_completed ? "Your onboarding is complete." : "Optional taste onboarding is ready whenever you are."}</p></div><Link className="button secondary" href="/onboarding">Edit taste preferences</Link></div>
     <div className="settings-row"><div><h2>AI & privacy</h2><p className="muted">Gemini is not connected. No AI requests are made in this version.</p></div><span className="pill">Phase 5</span></div>
   </section>;
 }

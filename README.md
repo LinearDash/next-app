@@ -1,6 +1,6 @@
 # Is It Worth It? — Next.js
 
-Phase 2 catalog MVP. Read `../REBUILD_PLAN.md` and `../PHASES.md` before continuing.
+Phase 3 personal library MVP. Read `../REBUILD_PLAN.md` and `../PHASES.md` before continuing.
 
 ## Local start
 
@@ -35,7 +35,7 @@ npm run test:browser
 npm audit
 ```
 
-Browser suite uses a separate credential-free production build in `.next-test/` on port 3417 and a local Postman TMDB simulation on port 4519. Install Postman CLI 1.70+ before browser checks. Run `npm run build:test` after app changes; real app credentials are preserved. Database tests run the actual SQL on embedded PostgreSQL with simulated auth claims; no external user data or keys. See `docs/auth-contract.md` for required live two-account/OAuth checks.
+Browser suite uses a separate production build containing only fictional test credentials in `.next-test/` on port 3417 and local Postman TMDB and Supabase Auth/PostgREST stand-ins on port 4519. Install Postman CLI 1.70+ before browser checks. Run `npm run build:test` after app changes; real app credentials are preserved. Database tests run the actual SQL on embedded PostgreSQL with simulated auth claims; no external user data or keys. See `docs/auth-contract.md` for required live two-account/OAuth checks.
 
 Migrations cover profiles, library and dismissals with owner-leading unique indexes, constraints, profile creation trigger, cascades and RLS. Provider vault, results and atomic request-limit migrations belong to phase 5. Profile consent columns are not writable by browser roles; no consent flow exists yet.
 
@@ -62,6 +62,19 @@ For manual simulated browsing:
 postman simulation run postman/simulations/catalog.sim.yaml --port 4519 --no-history --output ndjson
 ```
 
-In another terminal, start the isolated test build with `CATALOG_TEST_BUILD=1`, `TMDB_ACCESS_TOKEN=catalog-simulation-token`, `TMDB_SIMULATION_URL=http://127.0.0.1:4519/tmdb/3` and auth variables empty. The override only permits a loopback URL and the dummy token; a real token can never be sent to this stand-in. Do not configure the simulation override on real deployments.
+In another terminal, start the isolated test build with `CATALOG_TEST_BUILD=1`, `TMDB_ACCESS_TOKEN=catalog-simulation-token`, `TMDB_SIMULATION_URL=http://127.0.0.1:4519/tmdb/3` and the fictional Supabase URL/key used by `scripts/build-browser.mjs` (baked into the isolated build). The override only permits a loopback URL and the dummy token; a real token can never be sent to this stand-in. Do not configure the simulation override on real deployments.
 
 The approved logo in `public/tmdb-logo.svg` was downloaded unchanged from [TMDB's official attribution page](https://www.themoviedb.org/about/logos-attribution), blue_short variant. It is used for attribution, not as this app's branding.
+
+## Personal library and taste setup
+
+Phase 3 uses the existing phase-1 migration; no new SQL or environment variables are needed. Sign in with Google, open a title, then save a status, optional personal reaction and descriptive tags. Whole-show TV ratings, ratings before completion and watched-without-rating are supported.
+
+- `/library`: filter saved entries by movie/TV, status and reaction; edit or remove entries, 12 per page.
+- `/library?view=dismissed`: review and undo Not interested. Dismissal never deletes a saved entry/reaction; it excludes the title from future recommendations.
+- `/onboarding`: optional genres and suggested titles to rate. Five ratings are a suggestion. Skip preserves existing preferences and allows returning later.
+- `/settings`: links to editable taste preferences.
+
+Library metadata is fetched from TMDB in batches of four. During an outage, fallback media/ID labels preserve the ability to edit/remove existing entries. Personal responses and Supabase SDK requests are no-store; session verification runs on every private page/action. See `docs/library-contract.md` for behavior and live checks.
+
+The local Supabase stand-in uses fictional sessions and an owner-scoped Auth/PostgREST subset; browser tests exercise actual SSR SDK requests and Server Actions, while PostgreSQL tests separately enforce the real migration's RLS/constraints. This does not establish hosted Supabase isolation. Before accepting the live phase, use two real Google accounts to verify library/prefs/dismissal isolation, reload on another physical device, logout/expiry and no cached private data. Automated tests never write to the real project.

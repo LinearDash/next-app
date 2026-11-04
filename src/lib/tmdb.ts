@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { mediaTypeSchema, idSchema, searchSchema, parseList, parseDetail, type MediaType } from "./catalog";
 
 export class CatalogError extends Error {
@@ -93,4 +94,13 @@ export async function detail(type: string, id: string) {
     if (title && title.id !== parsedId.data) throw new Error("Mismatched title identity");
     return title;
   } catch { throw new CatalogError("unavailable"); }
+}
+
+export async function genres() {
+  const schema = z.object({ genres: z.array(z.object({ id: z.number().int().positive(), name: z.string().min(1).max(100) })).max(30) });
+  const lists = await Promise.all(["movie", "tv"].map(async type => {
+    const value = await request(`/genre/${type}/list`, new URLSearchParams(), 86400);
+    try { return schema.parse(value).genres; } catch { throw new CatalogError("unavailable"); }
+  }));
+  return [...new Map(lists.flat().map(genre => [genre.id, genre])).values()].sort((a, b) => a.name.localeCompare(b.name));
 }

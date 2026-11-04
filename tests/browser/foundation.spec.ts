@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 for (const width of [320, 768, 1440]) {
-  test(`home and account setup fit ${width}px`, async ({ page }) => {
+  test(`home and signed-out account fit ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Life’s too short");
@@ -9,11 +9,10 @@ for (const width of [320, 768, 1440]) {
     await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole("link", { name: /Make yourself at home/ }).click();
-    await expect(page.getByRole("heading", { name: "Account access is being set up." })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Continue with Google/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Continue with Google/ })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: "Account access is being set up." })).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 }

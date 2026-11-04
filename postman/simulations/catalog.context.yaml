@@ -1,6 +1,6 @@
 purpose:
-  stands_in_for: TMDB v3 popular, search and movie/TV detail reads.
-  unblocks: Local phase 2 verification without real credentials or live catalog calls.
+  stands_in_for: TMDB catalog/genre reads plus a local Supabase Auth/PostgREST subset.
+  unblocks: Local catalog and private library verification without real credentials or hosted user data.
 assumptions:
   - id: tmdb-shapes
     status: supported
@@ -17,14 +17,32 @@ assumptions:
     source: tests/browser/catalog.spec.ts; postman/mocks/tmdb/default.js
     updated_at: "2026-11-05"
   - id: live-credential
-    status: contradicted
-    claim: The currently configured application token authorizes live TMDB catalog reads.
-    reason: A separate manual status-only request to the real provider returned HTTP 401.
-    verification: On 2026-11-05 the normal app showed catalog recovery on discovery and movie/TV searches; a direct GET /3/movie/popular with the configured Bearer token returned 401. No token or raw error body was logged. Requires replacement and a new live check.
+    status: supported
+    claim: The user reports live catalog browsing works after correcting the credential type.
+    reason: The user confirmed everything looked good after being directed to use the separate API Read Access Token. This is user-reported evidence, not a new agent-observed provider response.
+    verification: On 2026-11-05 the normal app showed catalog recovery on discovery and movie/TV searches; a direct GET /3/movie/popular with the configured Bearer token returned 401. No token or raw error body was logged. A follow-up manual check on 2026-11-05 returned 200 when the same credential was used as a v3 api_key, confirming the current value is a valid API key but not a Bearer Read Access Token. The user subsequently confirmed the corrected setup works and authorized phase 3. The initial 401 applied to the v3 key, not the replacement token.
     source: PHASES.md at repository root; docs/catalog-contract.md
+    updated_at: "2026-11-05"
+  - id: library-caller-ownership
+    status: supported
+    claim: In exercised local scenarios library actions derive ownership from the verified simulated user and preserve separate movie/TV identities across reads and writes.
+    reason: Real Next.js Server Actions and Supabase SSR SDK requests ran against the stateful local Auth/PostgREST stand-in. Independent embedded PostgreSQL checks exercise the actual migration RLS; hosted RLS remains a live gate.
+    verification: On 2026-11-05 the final combined suite passed all 29 browser tests; phase 3 checks exercised save/edit/remove, reload and second-context persistence, two simulated owners, forged owner input, movie/TV ID collisions, reaction/status/tag filters, dismiss/restore and optional preferences. Sanitized stand-in request records confirmed owner filters and CRUD paths. No real account data was used.
+    source: tests/browser/library.spec.ts; tests/database.test.mjs; docs/library-contract.md; postman/mocks/supabase/default.js
+    updated_at: "2026-11-05"
+  - id: library-failure-recovery
+    status: supported
+    claim: The caller rejects invalid/expired/cross-origin writes and retains editable existing entries and unsaved form values in the exercised failure scenarios.
+    reason: Browser tests checked observable caller state and the stand-in's resulting stored records, rather than only HTTP completion.
+    verification: Simulated write 503 kept unsaved selections with no created entry; expired session and invalid reaction/genre made no write; cross-origin action returned 500 and no write; catalog outage retained editable/removable saved entries and skip preserved genre preferences. These observations apply to local fixtures, not a hosted outage guarantee.
+    source: tests/browser/library.spec.ts; src/app/library/actions.ts; src/components/personal-controls.tsx
     updated_at: "2026-11-05"
 fingerprints:
   - id: phase-2-working-tree
     date: "2026-11-05"
     commit: "7ac94954edbca2aa39a42e2585d72ade5e4244b7 (dirty phase 1/2 working tree)"
+    cli: "1.76.0"
+  - id: phase-3-working-tree
+    date: "2026-11-05"
+    commit: "d6f53c06d607258e972d8ca82959bb75e0fa2baf (dirty phase 3 working tree)"
     cli: "1.76.0"

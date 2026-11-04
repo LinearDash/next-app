@@ -8,6 +8,13 @@ test('configuration validates production origin and fails closed without auth se
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     assert.equal(supabaseConfig(), null);
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'fixture-publishable';
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:4519/supabase/';
+    assert.equal(supabaseConfig().url, 'http://127.0.0.1:4519/supabase');
+    for (const invalid of ['https://user:pass@example.com', 'https://example.com?secret=value', 'javascript:alert(1)']) {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = invalid;
+      assert.equal(supabaseConfig(), null);
+    }
     process.env.NODE_ENV = 'production';
     delete process.env.APP_ORIGIN;
     assert.throws(appOrigin, /required/);

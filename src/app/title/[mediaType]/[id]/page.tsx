@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { detail } from "@/lib/tmdb";
 import { CatalogNotice } from "@/components/catalog";
+import { Suspense } from "react";
+import { PersonalPanel } from "@/components/personal-panel";
 import { Poster } from "@/components/poster";
 
 export const metadata = { title: "Title details" };
@@ -22,7 +24,7 @@ export default async function Title({ params }: { params: Promise<{ mediaType: s
     </dl>
     <p>{title.genres.join(" · ") || "Genres unavailable"}</p><h2>Overview</h2><p className="title-overview">{title.overview || "No overview available yet."}</p>
     <div className="community-detail"><h2>TMDB community score</h2><p>{title.voteCount ? `${title.communityScore.toFixed(1)}/10 · ${title.voteCount.toLocaleString("en-US")} votes` : "No community score yet."}</p><p className="muted small">This is the TMDB community’s score, not your personal reaction.</p></div>
-    <p className="muted small">Saving titles and personal reactions will arrive with your library.</p>
+    <Suspense fallback={<p role="status">Loading your library…</p>}><PersonalPanel mediaType={title.mediaType} id={title.id} /></Suspense>
     <a className="text-link" href={`https://www.themoviedb.org/${title.mediaType}/${title.id}`} target="_blank" rel="noopener noreferrer">View on TMDB ↗</a>
   </div></article></section>;
 }

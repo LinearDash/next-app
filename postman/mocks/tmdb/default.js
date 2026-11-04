@@ -25,6 +25,8 @@ http.createServer(async (req, res) => {
   await pm.state.set("tmdb.requests", requests);
   if (!validBearer) return send(401, { status_code: 7, status_message: "Invalid API key", success: false });
   if (req.method !== "GET") return send(501, { error: "Not modeled" });
+  if (await pm.state.get("tmdb.mode") === "outage") return send(503, { status_message: "Temporarily unavailable" });
+  if (/^\/3\/genre\/(movie|tv)\/list$/.test(url.pathname)) return send(200, { genres: [{ id: 18, name: "Drama" }, { id: 35, name: "Comedy" }] });
   const match = /^\/3\/(?:(search)\/)?(movie|tv)\/(popular|[1-9]\d*)$/.exec(url.pathname)
     || /^\/3\/(search)\/(movie|tv)$/.exec(url.pathname);
   if (!match) return send(501, { error: "Endpoint not modeled" });

@@ -6,3 +6,6 @@ mocks:
     origin:
       - api.themoviedb.org
     path: postman/mocks/tmdb
+  - name: supabase
+    routeKey: supabase
+    path: postman/mocks/supabase

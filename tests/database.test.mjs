@@ -36,7 +36,12 @@ test('migration enforces ownership, constraints, restricted consent and cascades
     await assert.rejects(db.exec("update library_entries set tags = '{spoiler}'"), /controlled_tags/);
     await assert.rejects(db.exec("update library_entries set tags = array[null]::text[]"), /controlled_tags/);
     await assert.rejects(db.query("insert into library_entries(owner,tmdb_id,media_type,status) values ($1,42,'movie','watched')", [alice]), /unique constraint/);
+    await db.query("update library_entries set status='watched', reaction=null, tags='{interesting}' where owner=$1 and media_type='movie'", [alice]);
+    assert.deepEqual((await db.query("select status,reaction,tags from library_entries where media_type='movie'")).rows[0], { status: 'watched', reaction: null, tags: ['interesting'] });
+    await db.query("insert into library_entries(owner,tmdb_id,media_type,status,reaction,tags) values($1,42,'movie','dropped',2,'{boring}') on conflict(owner,media_type,tmdb_id) do update set status=excluded.status,reaction=excluded.reaction,tags=excluded.tags", [alice]);
+    assert.equal(await count('library_entries'), 2);
     await asUser(bob);
+    assert.equal((await db.query('update profiles set onboarding_completed=true where owner=$1 returning owner', [alice])).rows.length, 0);
     assert.equal(await count('library_entries'), 0);
     assert.equal(await count('dismissals'), 0);
     assert.equal(await count('profiles'), 1);
