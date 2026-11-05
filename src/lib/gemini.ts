@@ -46,6 +46,7 @@ export async function generate(apiKey: string, input: unknown, schema: object): 
   try { raw = await readCapped(response, 262144); } catch { throw new GeminiError(response.ok ? "invalid_response" : "upstream_unavailable"); }
   // Never relay provider bodies: they can echo request details. Only status codes and the invalid-key reason are used.
   if (!response.ok) {
+    diagnose(`http ${response.status}`, providerReasons(raw));
     if (response.status === 400 && raw.includes("API_KEY_INVALID")) throw new GeminiError("provider_auth");
     if ([401, 403].includes(response.status)) throw new GeminiError("provider_auth");
     if (response.status === 429) throw new GeminiError("provider_limited");
@@ -53,10 +54,27 @@ export async function generate(apiKey: string, input: unknown, schema: object): 
   }
   try {
     const candidate = responseSchema.parse(JSON.parse(raw)).candidates?.[0];
-    if (candidate?.finishReason !== "STOP") throw new Error("Incomplete");
+    if (candidate?.finishReason !== "STOP") { diagnose(`finishReason ${candidate?.finishReason ?? "missing"}`); throw new Error("Incomplete"); }
     const text = (candidate.content?.parts || []).filter(part => !part.thought).map(part => part.text || "").join("");
-    return JSON.parse(text);
+    try { return JSON.parse(text); } catch { diagnose("output is not JSON"); throw new Error("Not JSON"); }
   } catch { throw new GeminiError("invalid_response"); }
+}
+
+// Server-log diagnostics: categories and Google's machine-readable reason/field names only.
+// Never the key, the prompt, the model's text or a provider message.
+export function diagnose(what: string, details: string[] = []) {
+  console.warn(`[gemini] ${what}${details.length ? ` (${details.join(", ")})` : ""}`);
+}
+
+function providerReasons(raw: string) {
+  try {
+    const parsed = z.object({ error: z.object({ status: z.string().max(60).optional(), details: z.array(z.object({
+      reason: z.string().max(80).optional(), fieldViolations: z.array(z.object({ field: z.string().max(120).optional() })).max(10).optional(),
+    })).max(10).optional() }) }).parse(JSON.parse(raw)).error;
+    const safe = (value: string) => value.replace(/[^A-Za-z0-9_.[\]]/g, "");
+    return [parsed.status, ...(parsed.details || []).flatMap(detail => [detail.reason, ...(detail.fieldViolations || []).map(violation => violation.field)])]
+      .filter((value): value is string => Boolean(value)).map(safe);
+  } catch { return []; }
 }
 
 async function readCapped(response: Response, limit: number) {

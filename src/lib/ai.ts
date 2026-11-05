@@ -6,9 +6,10 @@ import { readAccount } from "./account";
 import { catalogLabels, entryColumns } from "./library";
 import { entrySchema } from "./library-input";
 import { detail, discover, genres, CatalogError } from "./tmdb";
-import { generate, GeminiError } from "./gemini";
+import { diagnose, generate, GeminiError } from "./gemini";
 import { unseal, vaultConfigured, VaultError } from "./vault";
-import { availability, checkFinder, CONSENT_VERSION, finderOutputSchema, finderResponseSchema, GEMINI_MODEL, PROMPT_VERSION, reactionMeaning,
+import type { VerdictView } from "@/components/verdict-card";
+import { availability, checkFinder, parseSaved, savedRowSchema, CONSENT_VERSION, finderOutputSchema, finderResponseSchema, GEMINI_MODEL, PROMPT_VERSION, reactionMeaning,
   SCHEMA_VERSION, TASTE_BUDGET, verdictOutputSchema, verdictResponseSchema, type AiErrorCode, type FinderInput } from "./ai-contract";
 import type { CatalogTitle, MediaType } from "./catalog";
 
@@ -31,7 +32,7 @@ export async function aiStatus(account: Account) {
     client.from("profiles").select("consent_version,consent_at,genre_preferences").eq("owner", user.id).single(),
     client.from("provider_credentials").select("key_hint,updated_at").eq("owner", user.id).maybeSingle(),
   ]);
-  if (profile.error || credential.error) throw new Error("AI settings unavailable");
+  if (profile.error || credential.error) throw new Error(`AI settings unavailable (${profile.error?.code ?? credential.error?.code})`);
   const parsed = z.object({ consent_version: z.string().nullable(), genre_preferences: z.array(z.number().int().positive()).max(30) }).parse(profile.data);
   return { consented: parsed.consent_version === CONSENT_VERSION, preferences: parsed.genre_preferences,
     keyHint: credential.data ? z.string().regex(/^[A-Za-z0-9_.-]{4}$/).parse(credential.data.key_hint) : null };
@@ -47,7 +48,7 @@ async function gate(subset: boolean): Promise<Account> {
   if (!status.keyHint) throw new AiFailure("missing_key");
   // Cheap pre-check so an oversized history asks for subset consent before using a quota slot.
   const rated = await account.client.from("library_entries").select("tmdb_id", { count: "exact", head: true }).eq("owner", account.user.id).not("reaction", "is", null);
-  if (rated.error) throw new Error("Library unavailable");
+  if (rated.error) throw new Error(`Rated-title count unavailable (${rated.error.code})`);
   if ((rated.count ?? 0) > TASTE_BUDGET && !subset) throw new AiFailure("oversized");
   return account;
 }
@@ -59,7 +60,7 @@ async function taste(account: Account, subset: boolean) {
       .order("updated_at", { ascending: false }).order("media_type").order("tmdb_id").limit(TASTE_BUDGET + 1),
     aiStatus(account),
   ]);
-  if (rated.error) throw new Error("Library unavailable");
+  if (rated.error) throw new Error(`Rated titles unavailable (${rated.error.code})`);
   const entries = z.array(entrySchema).max(TASTE_BUDGET + 1).parse(rated.data);
   // Never silently truncate: a larger history needs the user's explicit consent to the disclosed subset.
   if (entries.length > TASTE_BUDGET && !subset) throw new AiFailure("oversized");
@@ -78,7 +79,7 @@ async function genreNames() {
 
 async function userKey(account: Account) {
   const row = await account.client.from("provider_credentials").select(credentialColumns).eq("owner", account.user.id).maybeSingle();
-  if (row.error) throw new Error("Vault unavailable");
+  if (row.error) throw new Error(`Vault unavailable (${row.error.code})`);
   if (!row.data) throw new AiFailure("missing_key");
   return unseal(account.user.id, credentialSchema.parse(row.data));
 }
@@ -89,7 +90,7 @@ async function limited(account: Account, action: "verdict" | "finder", requestKe
   if (begun.error) {
     const code = ({ IW001: "duplicate", IW002: "busy", IW003: "quota" } as const)[begun.error.code as "IW001"];
     if (code) return { ok: false, code };
-    throw new Error("Request limits unavailable"); // fail closed
+    throw new Error(`Request limits unavailable (${begun.error.code})`); // fail closed
   }
   let ok = false;
   try {
@@ -113,7 +114,7 @@ async function save(account: Account, row: { action: "verdict" | "finder"; media
   if (!status.keyHint) throw new AiFailure("missing_key");
   const saved = await account.client.from("ai_results").insert({ owner: account.user.id, ...row, model: GEMINI_MODEL, prompt_version: PROMPT_VERSION, schema_version: SCHEMA_VERSION })
     .select("id").single();
-  if (saved.error) throw new Error("Result not saved");
+  if (saved.error) throw new Error(`Result not saved (${saved.error.code})`);
   return z.string().uuid().parse(saved.data.id);
 }
 
@@ -131,7 +132,7 @@ export async function runVerdict(input: { mediaType: MediaType; id: number; requ
       subject: { title: subject.title, media_type: subject.mediaType, year: subject.date.slice(0, 4), genres: subject.genres, overview: subject.overview.slice(0, 1500) },
       rated_titles: profile.titles, chosen_genres: profile.chosen,
     }, verdictResponseSchema));
-    if (!output.success) throw new AiFailure("invalid_response");
+    if (!output.success) { diagnose("verdict output rejected", issues(output.error)); throw new AiFailure("invalid_response"); }
     return save(account, { action: "verdict", media_type: subject.mediaType, tmdb_id: subject.id, taste_fingerprint: profile.fingerprint,
       result: { ...output.data, subject: snapshot(subject), ratedCount: profile.ratedCount, subset: profile.subset } });
   });
@@ -154,7 +155,7 @@ export async function runFinder(input: FinderInput): Promise<Outcome> {
       client.from("library_entries").select("tmdb_id,status").eq("owner", user.id).eq("media_type", input.mediaType).in("tmdb_id", ids),
       client.from("dismissals").select("tmdb_id").eq("owner", user.id).eq("media_type", input.mediaType).in("tmdb_id", ids),
     ]) : [empty, empty];
-    if (saved.error || dismissed.error) throw new Error("Library unavailable");
+    if (saved.error || dismissed.error) throw new Error(`Finder exclusions unavailable (${saved.error?.code ?? dismissed.error?.code})`);
     const excluded = new Set([...input.exclude,
       ...z.array(z.object({ tmdb_id: z.number(), status: z.string() })).parse(saved.data).filter(row => row.status !== "want_to_watch").map(row => row.tmdb_id),
       ...z.array(z.object({ tmdb_id: z.number() })).parse(dismissed.data).map(row => row.tmdb_id)]);
@@ -168,9 +169,9 @@ export async function runFinder(input: FinderInput): Promise<Outcome> {
       candidates: pool.map(title => ({ id: title.id, title: title.title, year: title.date.slice(0, 4), genres: title.genreIds.map(id => names.get(id)).filter(Boolean), overview: title.overview.slice(0, 300) })),
       rated_titles: profile.titles, chosen_genres: profile.chosen,
     }, finderResponseSchema));
-    if (!output.success) throw new AiFailure("invalid_response");
+    if (!output.success) { diagnose("finder output rejected", issues(output.error)); throw new AiFailure("invalid_response"); }
     const checked = checkFinder(output.data, new Set(pool.map(title => title.id)));
-    if (!checked) throw new AiFailure("invalid_response");
+    if (!checked) { diagnose("finder picked IDs outside the candidates"); throw new AiFailure("invalid_response"); }
     if (!checked.picks.length) throw new AiFailure("no_matches");
     const byId = new Map(pool.map(title => [title.id, title]));
     return save(account, { action: "finder", media_type: input.mediaType, tmdb_id: null, taste_fingerprint: profile.fingerprint, result: {
@@ -179,3 +180,29 @@ export async function runFinder(input: FinderInput): Promise<Outcome> {
       ratedCount: profile.ratedCount, subset: profile.subset } });
   });
 }
+
+// Saved verdicts as display data for the inline card. Reading a saved verdict never calls Gemini.
+const verdictColumns = "id,action,created_at,model,prompt_version,result";
+function toVerdictView(data: unknown): VerdictView | null {
+  const row = savedRowSchema.safeParse(data);
+  if (!row.success) return null;
+  const saved = parseSaved(row.data);
+  if (saved?.kind !== "verdict") return null;
+  return { id: row.data.id, verdict: saved.verdict, summary: saved.summary, reasonsFor: saved.reasons_for, reasonsAgainst: saved.reasons_against,
+    when: `${new Date(row.data.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} UTC`,
+    model: row.data.model, promptVersion: row.data.prompt_version, subset: saved.subset, ratedCount: saved.ratedCount, budget: TASTE_BUDGET };
+}
+
+export async function verdictById(account: Account, id: string) {
+  const row = await account.client.from("ai_results").select(verdictColumns).eq("owner", account.user.id).eq("id", id).maybeSingle();
+  return row.error ? null : toVerdictView(row.data);
+}
+
+export async function latestVerdict(account: Account, mediaType: MediaType, id: number) {
+  const row = await account.client.from("ai_results").select(verdictColumns).eq("owner", account.user.id).eq("action", "verdict")
+    .eq("media_type", mediaType).eq("tmdb_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return row.error ? null : toVerdictView(row.data);
+}
+
+// Which fields failed and how (e.g. "summary too_big"), never the values.
+const issues = (error: z.ZodError) => error.issues.slice(0, 5).map(issue => `${issue.path.join(".") || "root"} ${issue.code}`);

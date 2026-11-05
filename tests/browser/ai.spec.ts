@@ -23,7 +23,8 @@ async function enableAi(page: Page) {
   await expect(page.getByText("AI features are on for your account.")).toBeVisible();
   await page.getByLabel("Gemini API key").fill(key);
   await page.getByRole("button", { name: "Save key" }).click();
-  await expect(page.getByText(/Gemini key saved/)).toBeVisible();
+  // Wait for the stored key's masked hint; "No Gemini key saved." would also match a looser pattern.
+  await expect(page.getByText("••••-key")).toBeVisible();
 }
 async function rate(page: Page, path: string, reaction: string, status = "watched") {
   await page.goto(path);
@@ -32,7 +33,9 @@ async function rate(page: Page, path: string, reaction: string, status = "watche
   await page.getByRole("button", { name: "Save to library", exact: true }).click();
   await expect(page.getByText("Saved to your library.", { exact: true })).toBeVisible();
 }
-const ask = (page: Page) => page.getByRole("button", { name: "Ask for a verdict" }).click();
+const ask = (page: Page) => page.getByRole("button", { name: /Ask for a verdict|Ask again/ }).click();
+// The verdict appears inline under the button, on the same page, and receives focus.
+const inlineVerdict = (page: Page) => page.getByRole("heading", { level: 3, name: "Probably worth it" });
 
 test("consent and key lifecycle: encrypted at rest, masked, replaceable, deletable", async ({ page, context, request }) => {
   await session(context);
@@ -73,8 +76,8 @@ test("verdict: data-minimized request, validated and saved, reopened without a n
   await enableAi(page);
   await page.goto("/title/movie/42");
   await ask(page);
-  await expect(page).toHaveURL(/\/ai\/[0-9a-f-]{36}$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Probably worth it");
+  await expect(inlineVerdict(page)).toBeFocused();
+  await expect(page).toHaveURL("/title/movie/42");
   await expect(page.getByText(/Moody and patient <img src=x/)).toBeVisible(); // model text rendered as text
   expect(await page.evaluate(() => (window as unknown as { injected?: number }).injected)).toBeUndefined();
   await expect(page.getByText(/Gemini opinion, not fact · gemini-3.5-flash-lite/)).toBeVisible();
@@ -86,9 +89,12 @@ test("verdict: data-minimized request, validated and saved, reopened without a n
   expect(JSON.parse(sent).rated_titles).toEqual([{ title: "Another Movie", media_type: "movie", year: "2024", reaction: 5, meaning: "Loved it" }]);
   for (const forbidden of [alice, "example.test", key, "owner"]) expect(JSON.stringify(calls[0].body)).not.toContain(forbidden);
 
-  const url = page.url();
-  await page.goto("/ai");
-  await page.goto(url);
+  // Reloading the title shows the saved verdict; opening it from /ai works too. Neither calls Gemini again.
+  await page.reload();
+  await expect(inlineVerdict(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask again (new Gemini request)" })).toBeVisible();
+  await page.getByRole("link", { name: "Saved to your AI results →" }).click();
+  await expect(page).toHaveURL(/\/ai\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Probably worth it");
   expect(await geminiCalls(request)).toHaveLength(1);
   const rows = (await state(request)).results;
@@ -119,7 +125,7 @@ for (const [mode, message] of [
     expect(data.aiRequests.map((row: { status: string }) => row.status)).toEqual(["failed"]);
     await geminiMode(request, "normal");
     await ask(page); // same form: a fresh idempotency key avoids a false "duplicate"
-    await expect(page).toHaveURL(/\/ai\/[0-9a-f-]{36}$/);
+    await expect(inlineVerdict(page)).toBeVisible();
     data = await state(request);
     expect(data.results).toHaveLength(1);
   });
@@ -188,7 +194,7 @@ test("oversized history needs explicit subset consent; withdrawal stops further 
   expect((await state(request)).aiRequests).toEqual([]); // no quota used for the question
   await page.getByLabel(/Send only my 60 most recently updated ratings/).check();
   await ask(page);
-  await expect(page).toHaveURL(/\/ai\/[0-9a-f-]{36}$/, { timeout: 15000 });
+  await expect(inlineVerdict(page)).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(/Based on your 60 most recently updated ratings/)).toBeVisible();
   expect(JSON.parse((await geminiCalls(request))[0].body.contents[0].parts[0].text).rated_titles).toHaveLength(60);
 
@@ -243,3 +249,18 @@ for (const width of [320, 1440]) {
     }
   });
 }
+
+test("an unexpected server failure shows an inline message instead of the error page", async ({ page, context, request }) => {
+  await session(context);
+  await enableAi(page);
+  await request.post(`${service}/__mode?mode=write-failure`); // saving the result fails after Gemini answers
+  await page.goto("/title/movie/42");
+  await ask(page);
+  await expect(page.getByRole("alert").filter({ hasText: "Something went wrong on our side and nothing was saved." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /try that again/i })).toHaveCount(0);
+  await expect(page).toHaveURL("/title/movie/42");
+  await request.post(`${service}/__mode?mode=normal`);
+  const data = await state(request);
+  expect(data.results).toEqual([]);
+  expect(data.aiRequests.map((row: { status: string }) => row.status)).toEqual(["failed"]); // slot released
+});

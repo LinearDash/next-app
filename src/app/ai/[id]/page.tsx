@@ -7,6 +7,8 @@ import { genres } from "@/lib/tmdb";
 import { parseSaved, savedRowSchema, TASTE_BUDGET, verdictLabels } from "@/lib/ai-contract";
 import { Poster } from "@/components/poster";
 import { FinderForm, VerdictForm } from "@/components/ai-controls";
+import { VerdictCard } from "@/components/verdict-card";
+import { verdictById } from "@/lib/ai";
 import { deleteResults } from "../actions";
 
 export const metadata = { title: "AI result", robots: { index: false, follow: false } };
@@ -26,14 +28,12 @@ export default async function AiResult({ params }: { params: Promise<{ id: strin
   if (!saved) return <section className="catalog-page"><h1>AI <em>result.</em></h1><p className="notice">This saved result can’t be displayed.</p>{remove}</section>;
   const sparse = saved.ratedCount === 0 && <p className="notice" role="status">There isn’t enough personal rating history yet, so this used only your chosen genres (if any). Rate titles to improve it.</p>;
 
+  const view = saved.kind === "verdict" ? await verdictById({ client, user }, meta.id) : null;
   if (saved.kind === "verdict") return <section className="catalog-page"><Link className="text-link" href="/ai">← AI results</Link>
     <p className="eyebrow">VERDICT</p><h1>{verdictLabels[saved.verdict]}</h1>
     <div className="library-summary"><Poster path={saved.subject.posterPath} title={saved.subject.title} /><div><h2><Link href={`/title/${saved.subject.mediaType}/${saved.subject.id}`}>{saved.subject.title}</Link></h2>
       <p className="muted small">{saved.subject.mediaType === "movie" ? "Movie" : "TV series"} · {saved.subject.year || "Date unknown"}</p></div></div>
-    {sparse}<p className="title-overview">{saved.summary}</p>
-    {saved.reasons_for.length > 0 && <><h3>Why you might like it</h3><ul>{saved.reasons_for.map(reason => <li key={reason}>{reason}</li>)}</ul></>}
-    {saved.reasons_against.length > 0 && <><h3>Why you might not</h3><ul>{saved.reasons_against.map(reason => <li key={reason}>{reason}</li>)}</ul></>}
-    {footer}
+    {view ? <VerdictCard view={view} /> : <>{sparse}<p className="title-overview">{saved.summary}</p>{footer}</>}
     <VerdictForm mediaType={saved.subject.mediaType} id={saved.subject.id} requestKey={randomUUID()} budget={TASTE_BUDGET} label="Regenerate verdict (new Gemini request)" />
     {remove}
   </section>;

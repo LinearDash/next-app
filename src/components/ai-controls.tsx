@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useEffect, useId } from "react";
 import Link from "next/link";
+import { VerdictCard, type VerdictView } from "./verdict-card";
 import { askVerdict, changeConsent, deleteKey, findTitles, saveKey, type AiActionState } from "@/app/ai/actions";
 
 const initial: AiActionState = { ok: false, message: "" };
@@ -56,16 +57,23 @@ export function ConsentForm({ consented, allowAccept }: { consented: boolean; al
   </fieldset><Message state={state} /></form>;
 }
 
-export function VerdictForm({ mediaType, id, requestKey, budget, label = "Ask for a verdict" }: { mediaType: "movie" | "tv"; id: number; requestKey: string; budget: number; label?: string }) {
+// The answer appears right below the button. `saved` is the latest stored verdict for this title, if any.
+export function VerdictForm({ mediaType, id, requestKey, budget, label, saved }: { mediaType: "movie" | "tv"; id: number; requestKey: string; budget: number; label?: string; saved?: VerdictView | null }) {
   const [state, action, pending] = useActionState(askVerdict, initial);
-  return <form action={action} className="ai-form verdict-form" aria-label="Ask Gemini for a verdict">
+  const shown = state.verdict ?? saved ?? null;
+  const fresh = state.verdict?.id;
+  // Move focus to a newly arrived verdict so keyboard and screen-reader users hear it.
+  useEffect(() => { if (fresh) document.getElementById(`verdict-${fresh}`)?.focus(); }, [fresh]);
+  return <div className="verdict-block"><form action={action} className="ai-form verdict-form" aria-label="Ask Gemini for a verdict">
     <input type="hidden" name="mediaType" value={mediaType} /><input type="hidden" name="id" value={id} />
     <input type="hidden" name="requestKey" value={state.nextKey ?? requestKey} />
     <fieldset disabled={pending}><SubsetConsent state={state} budget={budget} />
-      <button className="button secondary">{pending ? "Asking Gemini…" : label}</button>
+      <button className="button secondary">{pending ? "Asking Gemini…" : label ?? (shown ? "Ask again (new Gemini request)" : "Ask for a verdict")}</button>
       <p className="small muted">Uses your Gemini key. Opinion, not fact.</p></fieldset>
+    {pending && <p className="small muted" role="status">Gemini is thinking. This can take up to half a minute.</p>}
     <Message state={state} />
-  </form>;
+  </form>
+  {shown && <div className={pending ? "verdict-stale" : undefined}><VerdictCard view={shown} /></div>}</div>;
 }
 
 type FinderDefaults = { mediaType: "movie" | "tv"; genres: number[]; language: string; maxRuntime: number | ""; mood: string; exclude: number[] };

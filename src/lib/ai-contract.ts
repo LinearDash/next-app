@@ -56,7 +56,7 @@ export const verdictOutputSchema = z.object({
 export const finderOutputSchema = z.object({
   picks: z.array(z.object({ id: z.number().int().positive(), reason: text(300) }).strict()).max(3),
 }).strict();
-export const verdictLabels = { worth_it: "Probably worth it", maybe: "Maybe — depends on your mood", skip: "Probably skip", insufficient_taste: "Not enough rating history yet" };
+export { verdictLabels } from "./taste.ts";
 
 // Gemini responseSchema (OpenAPI subset). Zod above re-validates syntax and meaning regardless.
 // Lengths are enforced by Zod only; keep this to widely supported schema fields.
