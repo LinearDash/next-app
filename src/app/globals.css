@@ -155,3 +155,56 @@ button:disabled { opacity: .6; cursor: wait; }
 .verdict-reasons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 4px 0 14px; }
 .verdict-stale { opacity: .5; }
 @media (max-width: 700px) { .verdict-reasons { grid-template-columns: 1fr; } }
+
+/* Typography (option D): Bebas Neue display + DM Sans body, self-hosted via next/font. */
+body { font-family: var(--font-body), Arial, Helvetica, sans-serif; line-height: 1.6; }
+h1, h2, .brand { font-family: var(--font-display), Impact, sans-serif; font-weight: 400; }
+h1 { font-size: clamp(56px, 8vw, 120px); line-height: .95; letter-spacing: 1px; }
+h2 { font-size: 40px; line-height: 1.05; letter-spacing: .6px; }
+h1 em, h2 em, .frame i { font-family: inherit; font-style: normal; font-weight: inherit; color: var(--accent); }
+h3 { font-family: var(--font-body), Arial, sans-serif; font-weight: 600; letter-spacing: -.2px; }
+.brand { font-size: 32px; letter-spacing: 1.5px; }
+.brand-icon { font-size: 26px; }
+.catalog-page > h1 { font-size: clamp(52px, 7vw, 104px); letter-spacing: 1px; }
+.account-panel h1 { font-size: clamp(56px, 7vw, 96px); letter-spacing: 1px; }
+.settings h1 { font-size: 88px; letter-spacing: 1px; }
+.title-detail h1 { font-size: clamp(44px, 5.5vw, 80px); letter-spacing: 1px; }
+.title-detail h2, .notice h2, .settings-row h2, .settings-ai h2 { font-size: 28px; }
+.library-editor h2 { font-size: 30px; }
+.foundation h2, .section-title h2 { font-size: 36px; }
+.frame > span:first-child { font-family: var(--font-display), Impact, sans-serif; font-size: 40px; line-height: 1.05; letter-spacing: .5px; }
+.verdict-card h3 { font-family: var(--font-display), Impact, sans-serif; font-weight: 400; font-size: 34px; letter-spacing: .6px; line-height: 1; }
+.eyebrow { font-size: 11px; letter-spacing: 2.4px; font-weight: 600; }
+nav { font-size: 14px; font-weight: 500; }
+nav a[aria-current=page] { color: var(--accent); }
+.button { font-size: 14px; }
+.title-card h3 { font-size: 16px; }
+.title-card p { font-size: 12px; }
+footer { font-size: 11px; }
+
+/* Search scope switch (native radios) and result filters. */
+.catalog-search .segmented { border: 0; padding: 0; margin: 0; min-width: 0; }
+.segmented legend { font-size: 12px; padding: 0; margin-bottom: 5px; }
+.segmented > div { display: flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--panel); }
+.segmented label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; margin: 0; font-size: 13px; font-weight: 600; cursor: pointer; border-right: 1px solid var(--line); }
+.segmented label:last-child { border-right: 0; }
+.catalog-search .segmented input { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.segmented label:has(input:checked) { background: var(--accent); color: #172016; }
+.segmented label:has(input:focus-visible) { box-shadow: inset 0 0 0 3px var(--text); }
+.result-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; flex-wrap: wrap; margin: 12px 0 24px; }
+.result-bar p { margin: 0; }
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.filter-chips a, .filter-chips a:first-child { min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border: 1px solid var(--line); border-radius: 30px; font-weight: 600; }
+.filter-chips a[aria-current=true] { background: #2a3322; border-color: #68794a; color: var(--accent); }
+.title-poster { position: relative; display: block; }
+.poster-badge { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; background: #111311e6; color: var(--text); border-radius: 30px; padding: 3px 8px; }
+@media (max-width: 700px) {
+  .brand { font-size: 26px; }
+  .header nav { font-size: 13px; gap: 14px; }
+  .settings h1 { font-size: 60px; letter-spacing: 1px; }
+  .hero h1 { letter-spacing: 1px; }
+  h2 { font-size: 34px; }
+  .catalog-search .segmented { flex: 1 1 100%; }
+  .segmented > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .segmented label { padding: 0 8px; }
+}

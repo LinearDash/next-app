@@ -5,7 +5,8 @@ export type MediaType = z.infer<typeof mediaTypeSchema>;
 export const idSchema = z.string().regex(/^[1-9]\d{0,9}$/).transform(Number).pipe(z.number().int().max(2147483647));
 export const searchSchema = z.object({
   q: z.string().trim().min(2).max(100),
-  type: mediaTypeSchema.default("movie"),
+  // "all" searches movies and TV together; "movie"/"tv" narrow the results.
+  type: z.enum(["all", "movie", "tv"]).default("all"),
   page: z.string().regex(/^[1-9]\d?$/).default("1").transform(Number).pipe(z.number().int().max(20)),
 });
 
@@ -59,6 +60,25 @@ export function parseList(value: unknown, mediaType: MediaType) {
       return true;
     }).map(title => normalize(title, mediaType)),
   };
+}
+
+// Combined movie + TV search: each result names its own media type; people are dropped.
+export function parseMultiList(value: unknown) {
+  const parsed = z.object({
+    page: z.number().int().positive(), total_pages: z.number().int().nonnegative(),
+    results: z.array(z.object({ media_type: z.string().max(20) }).passthrough()).max(20),
+  }).parse(value);
+  const seen = new Set<string>();
+  const titles = parsed.results.flatMap(raw => {
+    const mediaType = mediaTypeSchema.safeParse(raw.media_type);
+    if (!mediaType.success) return [];
+    const title = (mediaType.data === "movie" ? movieSchema : tvSchema).parse(raw);
+    const key = `${mediaType.data}:${title.id}`;
+    if (title.adult || seen.has(key)) return [];
+    seen.add(key);
+    return [normalize(title, mediaType.data)];
+  });
+  return { page: parsed.page, totalPages: Math.min(parsed.total_pages, 20), titles };
 }
 
 export function parseDetail(value: unknown, mediaType: MediaType): CatalogDetail | null {

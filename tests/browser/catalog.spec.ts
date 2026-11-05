@@ -24,10 +24,15 @@ for (const width of [320, 768, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByLabel("Title", { exact: true }).fill("Lighthouse");
     await page.getByLabel("Title", { exact: true }).press("Tab");
-    await expect(page.getByLabel("Search in")).toBeFocused();
-    await page.getByLabel("Search in").selectOption("tv");
+    // The scope switch is a native radio group: Tab lands on the checked "All", arrows change it.
+    await expect(page.getByRole("radio", { name: "All" })).toBeFocused();
+    await expect(page.getByRole("radio", { name: "All" })).toBeChecked();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("radio", { name: "TV series" })).toBeChecked();
     await page.getByRole("button", { name: "Search", exact: true }).click();
-    await expect(page.getByRole("heading", { name: /TV series matching/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Results for/ })).toBeVisible();
+    await expect(page.getByText(/TV series only/)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole("link", { name: /Lighthouse Diaries/ }).click();
     await expect(page).toHaveURL('/title/tv/42');
@@ -44,10 +49,11 @@ test('movie identity, search encoding, pagination and no typing requests', async
   await page.goto('/search');
   await page.getByLabel('Title', { exact: true }).fill('A & B / 日本語');
   expect(await (await request.get(`${simulation}/__requests`)).json()).toEqual([]);
+  await page.getByRole('radio', { name: 'Movies' }).check();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /Movies matching/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Results for/ })).toBeVisible();
   await page.getByRole('link', { name: 'Next →' }).click();
-  await expect(page.getByText('Page 2 of 2', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Page 2 of 2/)).toBeVisible();
   const log = await (await request.get(`${simulation}/__requests`)).json();
   expect(log.some((entry: { query: { query: string; page: string }; validBearer: boolean }) => entry.query.query === 'A & B / 日本語' && entry.query.page === '2' && entry.validBearer)).toBe(true);
   await page.goto('/title/movie/42');
@@ -62,7 +68,7 @@ test('invalid searches never call the provider; empty results and title 404 reco
   }
   expect(await (await request.get(`${simulation}/__requests`)).json()).toEqual([]);
   await page.goto('/search?q=empty');
-  await expect(page.getByText('No titles found. Try another search.')).toBeVisible();
+  await expect(page.getByText('No movies or TV series match “empty”. Try another title.')).toBeVisible();
   for (const url of ['/title/movie/404', '/title/person/42', '/title/movie/01']) {
     await page.goto(url);
     await expect(page.getByRole('heading', { name: 'This one got away.' })).toBeVisible();
@@ -103,4 +109,28 @@ test('credits carry official attribution and token never reaches HTML or browser
   const log = await (await request.get(`${simulation}/__requests`)).json();
   expect(log.length).toBeGreaterThan(0);
   expect(log.every((entry: { validBearer: boolean }) => entry.validBearer)).toBe(true);
+});
+
+test('search defaults to movies and TV together; filters narrow it; people are ignored', async ({ page, request }) => {
+  await request.post(`${simulation}/__control?mode=normal`);
+  await page.goto('/discover');
+  await expect(page.getByRole('radio', { name: 'All' })).toBeChecked();
+  await page.getByLabel('Title', { exact: true }).fill('lighthouse');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page).toHaveURL(/type=all/);
+  const grid = page.locator('.title-grid');
+  // Same numeric ID as a movie and a show: both appear, each linking to its own page, each with a type badge.
+  await expect(grid.getByRole('link', { name: /The Last Lighthouse/ })).toHaveAttribute('href', '/title/movie/42');
+  await expect(grid.getByRole('link', { name: /Lighthouse Diaries/ })).toHaveAttribute('href', '/title/tv/42');
+  await expect(grid.locator('.poster-badge')).toHaveText(['Movie', 'TV', 'Movie']);
+  await expect(page.getByText('A Person')).toHaveCount(0);
+  const log = await (await request.get(`${simulation}/__requests`)).json();
+  expect(log.some((entry: { path: string; query: { query: string } }) => entry.path === '/3/search/multi' && entry.query.query === 'lighthouse')).toBe(true);
+
+  await page.getByRole('navigation', { name: 'Filter results' }).getByRole('link', { name: 'TV series' }).click();
+  await expect(page).toHaveURL('/search?q=lighthouse&type=tv&page=1');
+  await expect(page.getByRole('link', { name: 'TV series', exact: true })).toHaveAttribute('aria-current', 'true');
+  await expect(grid.locator('.poster-badge')).toHaveCount(0); // single-type results need no badges
+  await expect(page.getByRole('radio', { name: 'TV series' })).toBeChecked();
+  await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Discover' })).toHaveAttribute('aria-current', 'page');
 });

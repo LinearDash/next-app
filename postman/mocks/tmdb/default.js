@@ -41,7 +41,7 @@ http.createServer(async (req, res) => {
     return send(200, { page, results, total_pages: 1, total_results: results.length });
   }
   const match = /^\/3\/(?:(search)\/)?(movie|tv)\/(popular|[1-9]\d*)$/.exec(url.pathname)
-    || /^\/3\/(search)\/(movie|tv)$/.exec(url.pathname);
+    || /^\/3\/(search)\/(movie|tv|multi)$/.exec(url.pathname);
   if (!match) return send(501, { error: "Endpoint not modeled" });
   const [, isSearch, type, action] = match;
   const query = url.searchParams.get("query") || "";
@@ -62,6 +62,13 @@ http.createServer(async (req, res) => {
   }
   const page = Number(url.searchParams.get("page") || "1");
   if (query === "empty") return send(200, { page, results: [], total_pages: 0, total_results: 0 });
+  if (type === "multi") {
+    // Combined search: each result carries media_type; people must be ignored by the app.
+    const tagged = (kind, id) => ({ ...listed(title(kind, id)), media_type: kind });
+    const person = { id: 7, media_type: "person", name: "A Person", profile_path: null, adult: false };
+    const results = page === 1 ? [tagged("movie", 42), tagged("tv", 42), person, tagged("movie", 43)] : [tagged("tv", 43)];
+    return send(200, { page, results, total_pages: 2, total_results: 5 });
+  }
   const results = (page === 1 ? [title(type), title(type, 43)] : [title(type, 43)]).map(listed);
   return send(200, { page, results, total_pages: 2, total_results: 3 });
 }).listen(process.env.PORT || 4519);

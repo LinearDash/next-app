@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
+import { MainNav } from "@/components/main-nav";
 import "./globals.css";
+
+// Self-hosted at build time by next/font: no runtime requests to Google, so the CSP stays font-src 'self'.
+const display = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--font-display", display: "swap" });
+const body = DM_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Is It Worth It?", template: "%s · Is It Worth It?" },
@@ -8,10 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>
+  return <html lang="en" className={`${display.variable} ${body.variable}`}><body>
     <a className="skip" href="#main">Skip to content</a>
     <header className="header"><Link className="brand" href="/" aria-label="Is It Worth It? Home"><span className="brand-icon" aria-hidden="true">✳</span> is it worth it<span className="accent">?</span></Link>
-      <nav aria-label="Main navigation"><Link href="/discover">Discover</Link><Link href="/for-you">For you</Link><Link href="/library">Library</Link><Link href="/settings">My account <span aria-hidden="true">↗</span></Link></nav>
+      <MainNav />
     </header>
     <main id="main">{children}</main>
     <footer><span>Good stories. Your own taste.</span><span>Independent. Personal. Ad-free. · <Link href="/credits">Credits &amp; TMDB attribution</Link></span></footer>

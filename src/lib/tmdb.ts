@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { mediaTypeSchema, idSchema, searchSchema, parseList, parseDetail, type MediaType } from "./catalog";
+import { mediaTypeSchema, idSchema, searchSchema, parseList, parseMultiList, parseDetail, type MediaType } from "./catalog";
 
 export class CatalogError extends Error {
   constructor(public code: "configuration" | "unavailable" | "busy" | "invalid") {
@@ -94,9 +94,9 @@ export async function search(input: { q: string; type?: string; page?: string })
   const parsed = searchSchema.safeParse(input);
   if (!parsed.success) throw new CatalogError("invalid");
   const { q, type, page } = parsed.data;
-  const value = await request(`/search/${type}`, new URLSearchParams({ query: q, page: String(page), include_adult: "false" }), 60);
+  const value = await request(`/search/${type === "all" ? "multi" : type}`, new URLSearchParams({ query: q, page: String(page), include_adult: "false" }), 60);
   try {
-    const result = parseList(value, type);
+    const result = type === "all" ? parseMultiList(value) : parseList(value, type);
     if (result.page !== page) throw new Error("Mismatched page");
     return result;
   } catch { throw new CatalogError("unavailable"); }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { searchSchema, idSchema, parseList, parseDetail } from '../src/lib/catalog.ts';
+import { searchSchema, idSchema, parseList, parseMultiList, parseDetail } from '../src/lib/catalog.ts';
 import { posterUrl } from '../src/lib/poster.ts';
 
 const base = { id: 42, poster_path: null, overview: '', vote_average: 8.2, vote_count: 20 };
@@ -25,4 +25,14 @@ test('search, IDs and poster paths reject injection and out-of-budget values', (
   assert.equal(idSchema.parse('42'), 42);
   assert.equal(posterUrl('/safe-name.jpg'), 'https://image.tmdb.org/t/p/w342/safe-name.jpg');
   for (const path of [null, 'https://evil.example/a.jpg', '//evil.example/a.jpg', '/../../a.jpg', '/a.svg', '/a.jpg?token=secret']) assert.equal(posterUrl(path), null);
+});
+
+test('combined search keeps movie/TV identity, drops people and rejects malformed titles', () => {
+  const result = parseMultiList({ page: 1, total_pages: 3, results: [
+    { ...base, media_type: 'movie', title: 'Movie' }, { ...base, media_type: 'tv', name: 'Show' },
+    { id: 7, media_type: 'person', name: 'Someone' }, { ...base, media_type: 'movie', title: 'Duplicate' },
+  ] });
+  assert.deepEqual(result.titles.map(t => `${t.mediaType}:${t.id}:${t.title}`), ['movie:42:Movie', 'tv:42:Show']);
+  assert.equal(searchSchema.parse({ q: 'ab' }).type, 'all');
+  assert.throws(() => parseMultiList({ page: 1, total_pages: 1, results: [{ ...base, media_type: 'movie', name: 'Wrong shape' }] }));
 });
