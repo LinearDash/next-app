@@ -15,7 +15,11 @@ export async function signIn() {
     });
     if (!error && data.url) {
       const url = new URL(data.url);
-      if (url.origin === new URL(supabaseConfig()!.url).origin && url.pathname === `${new URL(supabaseConfig()!.url).pathname.replace(/\/$/, "")}/auth/v1/authorize`) {
+      if (
+        url.origin === new URL(supabaseConfig()!.url).origin &&
+        url.pathname ===
+          `${new URL(supabaseConfig()!.url).pathname.replace(/\/$/, "")}/auth/v1/authorize`
+      ) {
         destination = url.href;
       }
     }

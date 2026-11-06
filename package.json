@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"tests/**/*.{mjs,ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\" \"tests/**/*.{mjs,ts,tsx}\"",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --conditions=react-server --test tests/*.test.mjs",
     "test:browser": "playwright test",
@@ -35,6 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
+    "prettier": "^3.9.10",
     "shadcn": "^4.23.0",
     "tailwindcss": "^4.3.5",
     "typescript": "^5"

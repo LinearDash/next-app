@@ -7,7 +7,14 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   if (config) {
     const supabase = createServerClient(config.url, config.key, {
-      global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store", signal: init?.signal || AbortSignal.timeout(6000) }) },
+      global: {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            cache: "no-store",
+            signal: init?.signal || AbortSignal.timeout(6000),
+          }),
+      },
       cookieOptions: { sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" },
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -28,4 +35,15 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/settings/:path*", "/library/:path*", "/for-you/:path*", "/ai/:path*", "/onboarding/:path*", "/title/:path*", "/login", "/auth/:path*"] };
+export const config = {
+  matcher: [
+    "/settings/:path*",
+    "/library/:path*",
+    "/for-you/:path*",
+    "/ai/:path*",
+    "/onboarding/:path*",
+    "/title/:path*",
+    "/login",
+    "/auth/:path*",
+  ],
+};

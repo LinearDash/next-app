@@ -18,9 +18,15 @@ export function appOrigin() {
     throw new Error("APP_ORIGIN is required in production");
   }
   const url = new URL(configured || "http://localhost:3000");
-  if (url.username || url.password || url.pathname !== "/" || url.search || url.hash ||
-      !["http:", "https:"].includes(url.protocol) ||
-      (process.env.NODE_ENV === "production" && url.protocol !== "https:")) {
+  if (
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash ||
+    !["http:", "https:"].includes(url.protocol) ||
+    (process.env.NODE_ENV === "production" && url.protocol !== "https:")
+  ) {
     throw new Error("APP_ORIGIN must be an application origin");
   }
   return url.origin;

@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
       // Missing/expired PKCE verifier and provider outages share a safe recovery path.
     }
   }
-  const response = NextResponse.redirect(new URL(success ? "/settings" : "/login?error=callback", appOrigin()), 303);
+  const response = NextResponse.redirect(
+    new URL(success ? "/settings" : "/login?error=callback", appOrigin()),
+    303,
+  );
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
