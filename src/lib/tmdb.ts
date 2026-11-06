@@ -65,10 +65,27 @@ async function request(path: string, params: URLSearchParams, ttl: number) {
   } finally { activeRequests--; }
 }
 
-export async function popular(mediaType: MediaType) {
+const catalogPageSchema = z.number().int().min(1).max(20);
+
+export async function popular(mediaType: MediaType, page = 1) {
   mediaTypeSchema.parse(mediaType);
-  const value = await request(`/${mediaType}/popular`, new URLSearchParams({ page: "1" }), 3600);
-  try { return parseList(value, mediaType); } catch { throw new CatalogError("unavailable"); }
+  const requestedPage = catalogPageSchema.parse(page);
+  const value = await request(`/${mediaType}/popular`, new URLSearchParams({ page: String(requestedPage) }), 3600);
+  try {
+    const result = parseList(value, mediaType);
+    if (result.page !== requestedPage) throw new Error("Mismatched page");
+    return result;
+  } catch { throw new CatalogError("unavailable"); }
+}
+
+export async function trending(window: "day" | "week" = "day") {
+  const timeWindow = z.enum(["day", "week"]).parse(window);
+  const value = await request(`/trending/all/${timeWindow}`, new URLSearchParams(), timeWindow === "day" ? 3600 : 21600);
+  try {
+    const result = parseMultiList(value);
+    if (result.page !== 1) throw new Error("Mismatched page");
+    return result;
+  } catch { throw new CatalogError("unavailable"); }
 }
 
 const discoverSchema = z.object({

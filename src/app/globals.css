@@ -12,6 +12,12 @@
 .catalog-search input, .catalog-search select { width: 100%; min-height: 48px; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 10px 12px; font: inherit; }
 .catalog-search input:focus-visible, .catalog-search select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .catalog-section { margin: 40px 0 54px; }
+.catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.catalog-heading h2 { margin-bottom: 0; }
+.discover-tabs { display: flex; gap: 8px; }
+.discover-tabs a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--line); border-radius: 30px; font-size: 12px; }
+.discover-tabs a[aria-current="page"] { border-color: #68794a; background: #2a3322; color: var(--accent); }
+.discover-tabs a:hover, .pagination a:hover { color: var(--accent); }
 .title-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 28px 18px; }
 .title-grid li { min-width: 0; }
 .title-card { display: block; border-radius: 5px; }

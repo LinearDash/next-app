@@ -30,6 +30,10 @@ http.createServer(async (req, res) => {
   if (req.method !== "GET") return send(501, { error: "Not modeled" });
   if (await pm.state.get("tmdb.mode") === "outage") return send(503, { status_message: "Temporarily unavailable" });
   if (/^\/3\/genre\/(movie|tv)\/list$/.test(url.pathname)) return send(200, { genres: [{ id: 18, name: "Drama" }, { id: 35, name: "Comedy" }] });
+  if (/^\/3\/trending\/all\/(day|week)$/.test(url.pathname)) {
+    const tagged = (kind, id) => ({ ...listed(title(kind, id)), media_type: kind });
+    return send(200, { page: 1, results: [tagged("movie", 42), tagged("tv", 42), tagged("movie", 44)], total_pages: 1, total_results: 3 });
+  }
   const discover = /^\/3\/discover\/(movie|tv)$/.exec(url.pathname);
   if (discover) {
     if (url.searchParams.get("include_adult") !== "false" || url.searchParams.get("sort_by") !== "popularity.desc" || !/^([1-9]\d*(\|[1-9]\d*)*)?$/.test(url.searchParams.get("with_genres") || "")) return send(400, { status_message: "Invalid discover parameters" });
@@ -69,6 +73,7 @@ http.createServer(async (req, res) => {
     const results = page === 1 ? [tagged("movie", 42), tagged("tv", 42), person, tagged("movie", 43)] : [tagged("tv", 43)];
     return send(200, { page, results, total_pages: 2, total_results: 5 });
   }
-  const results = (page === 1 ? [title(type), title(type, 43)] : [title(type, 43)]).map(listed);
-  return send(200, { page, results, total_pages: 2, total_results: 3 });
+  const popularIds = page === 1 ? [42, 43] : page === 2 ? [44, 43] : [42, 44];
+  const results = popularIds.map(id => listed(title(type, id)));
+  return send(200, { page, results, total_pages: 3, total_results: 60 });
 }).listen(process.env.PORT || 4519);

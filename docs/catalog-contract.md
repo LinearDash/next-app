@@ -4,18 +4,18 @@ Public server-rendered catalog pages; no browser TMDB credentials, provider URL 
 
 | Surface | Input and behavior |
 | --- | --- |
-| `/discover` | Parallel popular movie and TV lists, independently recoverable failures. First 20 of each. |
+| `/discover` | A mixed daily/weekly trending feed plus independently recoverable popular movie and TV lists. `trend` selects day/week (defaults to day). Popular lists are page-based; `movies` and `tv` query params accept pages 1–20 and invalid/repeated values fall back to page 1. |
 | `/search` | GET form, explicit submission (no per-keystroke requests), `q` trimmed 2–100 chars, `type` movie or tv, integer `page` 1–20. Reject repeated/invalid parameters before provider call. Empty query shows instructions. |
 | `/title/[mediaType]/[id]` | Type movie/tv, canonical positive int32 ID. Invalid identity or upstream 404 shows 404. Fetch trusted title metadata server-side. |
 | `/credits` | TMDB attribution, approved logo and link, required non-endorsement notice. |
 
 ## Provider calls
 
-`GET https://api.themoviedb.org/3/movie/popular`, `/tv/popular`, `/search/movie`, `/search/tv`, `/movie/{id}`, `/tv/{id}`.
+`GET https://api.themoviedb.org/3/trending/all/{day|week}`, `/movie/popular`, `/tv/popular`, `/search/movie`, `/search/tv`, `/movie/{id}`, `/tv/{id}`.
 
 Bearer token is `TMDB_ACCESS_TOKEN` server-only. Fixed `language=en-US`; search also sends `include_adult=false`, encoded query and bounded page. Drop any explicit adult results. Responses are runtime-validated with Zod; no raw provider JSON is rendered or logged. Check detail ID matches request. Bound body to 1 MiB and upstream deadline to 6 seconds, including response body. Do not follow provider redirects. No automatic retries.
 
-Shared non-personal fetch cache: popular 1 hour, details 6 hours, search 1 minute. Search page itself is noindex and query strings are not logged by application code. Avoid typing sensitive information into public catalog search; hosting access logs may include URLs.
+Shared non-personal fetch cache: daily trending and popular 1 hour, weekly trending 6 hours, details 6 hours, search 1 minute. Trending carries movie/TV identity badges and drops people. Popular page controls retain the other section's current page and the selected trending window. Search page itself is noindex and query strings are not logged by application code. Avoid typing sensitive information into public catalog search; hosting access logs may include URLs.
 
 Per-instance search guard: 60 submissions/minute; max 8 simultaneous catalog fetches. This is a best-effort MVP guard, not a distributed anti-abuse quota. Platform/distributed protections remain a release gate.
 
@@ -35,6 +35,7 @@ Use local Postman simulation with fictional fixtures matching the documented TMD
 
 - https://developer.themoviedb.org/reference/movie-popular-list
 - https://developer.themoviedb.org/reference/tv-series-popular-list
+- https://developer.themoviedb.org/reference/trending-all
 - https://developer.themoviedb.org/reference/search-movie
 - https://developer.themoviedb.org/reference/search-tv
 - https://developer.themoviedb.org/reference/movie-details
@@ -47,3 +48,5 @@ Orbit located TV search/discover contracts; official references supply popular/m
 ## Recorded result
 
 Final phase 2 run: 4 Node/PostgreSQL tests, 19 production-browser checks, lint, typecheck, normal and isolated builds passed. Browser checks include deliberately delayed hydration for early image-error recovery and retry after a partial outage is removed. Separate live TMDB smoke returned HTTP 401; success against the real service remains pending a valid Read Access Token. See `../../PHASES.md` for the workspace handoff.
+
+Discover feed update (2026-11-07): added `/trending/all/day|week`, with movie/TV identity retained and people ignored, and bounded page navigation for movie/TV popular lists. Lint, typecheck and production build passed. Browser simulation and the new live trending endpoint were not exercised in this update.

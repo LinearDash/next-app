@@ -23,6 +23,13 @@ assumptions:
     verification: On 2026-11-05 the normal app showed catalog recovery on discovery and movie/TV searches; a direct GET /3/movie/popular with the configured Bearer token returned 401. No token or raw error body was logged. A follow-up manual check on 2026-11-05 returned 200 when the same credential was used as a v3 api_key, confirming the current value is a valid API key but not a Bearer Read Access Token. The user subsequently confirmed the corrected setup works and authorized phase 3. The initial 401 applied to the v3 key, not the replacement token.
     source: PHASES.md at repository root; docs/catalog-contract.md
     updated_at: "2026-11-05"
+  - id: trending-all-contract
+    status: supported
+    claim: TMDB v3 trending/all supports day and week windows and returns mixed media records, including people which this app must drop.
+    reason: The Discover trending shelf depends on the mixed media response and preserves media identity for movie and TV title routes.
+    verification: On 2026-11-07, read the official Trending All reference, which documents /3/trending/all/{time_window}, allows day/week, and describes multiple media types including people. The new local handler models this response, but the caller has not yet been exercised against that handler in this pass; this is provider-contract evidence, not live response evidence.
+    source: https://developer.themoviedb.org/reference/trending-all; src/lib/tmdb.ts; src/lib/catalog.ts; postman/mocks/tmdb/default.js
+    updated_at: "2026-11-07"
   - id: library-caller-ownership
     status: supported
     claim: In exercised local scenarios library actions derive ownership from the verified simulated user and preserve separate movie/TV identities across reads and writes.
@@ -45,4 +52,8 @@ fingerprints:
   - id: phase-3-working-tree
     date: "2026-11-05"
     commit: "d6f53c06d607258e972d8ca82959bb75e0fa2baf (dirty phase 3 working tree)"
+    cli: "1.76.0"
+  - id: discover-feed-update
+    date: "2026-11-07"
+    commit: "78131279ec2ea88f5e5b004038630ca63c27c5ed (dirty Discover feed update)"
     cli: "1.76.0"

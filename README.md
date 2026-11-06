@@ -45,7 +45,7 @@ Security headers are a baseline. Nonce CSP, complete privacy/deletion flows and 
 
 Set `TMDB_ACCESS_TOKEN` in your ignored `.env` or `.env.local` to the **API Read Access Token** from [TMDB API settings](https://www.themoviedb.org/settings/api). This is Bearer authentication, not an `api_key` query parameter. An HTTP 401 usually means the token is invalid or is the wrong credential type. Restart the dev server after changing it; production needs a server restart/redeploy. Never prefix this variable with `NEXT_PUBLIC_`.
 
-- `/discover`: popular movies and TV, independently recoverable sections.
+- `/discover`: mixed daily/weekly movie and TV trends plus separately paginated popular sections.
 - `/search`: explicit GET search, separate media type and bounded pagination.
 - `/title/movie/42` and `/title/tv/42`: separate catalog identities and metadata.
 - `/credits`: official TMDB logo, data/image credit and non-endorsement notice.
