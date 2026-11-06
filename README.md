@@ -52,6 +52,10 @@ Set `TMDB_ACCESS_TOKEN` in your ignored `.env` or `.env.local` to the **API Read
 
 Search sends nothing while typing. Shared non-personal fetches use bounded revalidation; search also has a per-instance 60/minute guard, with at most eight catalog fetches in flight. These are MVP protections; distributed/platform anti-abuse protection remains a launch gate. Runtime provider validation and safe errors are described in `docs/catalog-contract.md`.
 
+## UI components
+
+The UI refresh uses shadcn/ui with Base UI, Tailwind CSS v4 and the existing dark-cinema colors. Generated components live in `src/components/ui`; add more with `npx shadcn add <component>`. New and refreshed page controls should use these components as pages are redesigned, rather than importing a second component framework. The current setup includes Button and Skeleton. Loading skeletons are route-specific so a page's skeleton does not stack with a global fallback.
+
 ### Local dependency simulation
 
 `npm run test:browser` starts/stops both the real Next.js app and Postman's local stand-in. Fictional titles in `postman/mocks/tmdb` are test-only, never fallback content for real users. The browser suite reads sanitized stand-in request records to confirm correct HTTP paths, query encoding and Bearer auth. It covers upstream auth/429/503, invalid JSON/schema, oversized response, timeout, empty results, missing titles and partial outages.
