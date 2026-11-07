@@ -143,18 +143,22 @@ async function taste(account: Account, subset: boolean) {
     title: row.title!.title,
     media_type: row.media_type,
     year: row.title!.date.slice(0, 4),
+    genres: row.title!.genres,
     reaction: row.reaction!,
     meaning: reactionMeaning(row.reaction!),
+    tags: row.tags,
   }));
   const chosen = profile.preferences.map((id) => names.get(id)).filter(Boolean);
+  const fingerprintTitles = labelled
+    .map((row) => ({
+      id: `${row.media_type}:${row.tmdb_id}`,
+      reaction: row.reaction,
+      genres: row.title!.genres,
+      tags: row.tags,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
   const fingerprint = createHash("sha256")
-    .update(
-      JSON.stringify([
-        labelled.map((row) => `${row.media_type}:${row.tmdb_id}:${row.reaction}`).sort(),
-        profile.preferences,
-        subset,
-      ]),
-    )
+    .update(JSON.stringify([fingerprintTitles, profile.preferences, subset]))
     .digest("hex");
   return {
     titles,

@@ -108,7 +108,15 @@ test("verdict: data-minimized request, validated and saved, reopened without a n
   expect(calls[0].keyValid).toBe(true);
   const sent = calls[0].body.contents[0].parts[0].text;
   expect(JSON.parse(sent).rated_titles).toEqual([
-    { title: "Another Movie", media_type: "movie", year: "2024", reaction: 5, meaning: "Loved it" },
+    {
+      title: "Another Movie",
+      media_type: "movie",
+      year: "2024",
+      genres: ["Comedy"],
+      reaction: 5,
+      meaning: "Loved it",
+      tags: [],
+    },
   ]);
   for (const forbidden of [alice, "example.test", key, "owner"])
     expect(JSON.stringify(calls[0].body)).not.toContain(forbidden);

@@ -49,12 +49,12 @@ Details:
 
 ## What Gemini receives
 
-- For each rated title: its name, movie/TV and year, plus the reaction (1–5) with its label.
+- For each rated title: its name, movie/TV and year, catalog genres, personal tags, plus the reaction (1–5) with its label.
 - The genre names the user chose.
 - Trusted metadata for the subject or candidates. Overviews are truncated.
 - Filters and mood.
 
-It never receives the user's name, email, account or owner ID. The versioned system prompt treats all input as untrusted data. It requires spoiler-free answers and opinions rather than probabilities, and it requires the finder to choose only offered IDs. Spoiler avoidance is by instruction only and is not guaranteed.
+It never receives the user's name, email, account or owner ID. The versioned system prompt treats all input as untrusted data. Verdicts require a clear match before recommending, use "maybe" for weak, mixed, sparse or one-sided taste evidence, and reserve "skip" for supported conflicts. It requires spoiler-free answers and opinions rather than probabilities, and it requires the finder to choose only offered IDs. Spoiler avoidance is by instruction only and is not guaranteed.
 
 ## Errors
 

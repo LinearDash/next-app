@@ -133,10 +133,10 @@ export function ConsentForm({
         <ul className="disclosure">
           <li>AI features are optional and run only when you press a button.</li>
           <li>
-            Each request sends Google Gemini your rated titles (title, movie/TV, your reaction),
-            your chosen genres, and the request details. That can include the title you’re asking
-            about, your filters and the mood you type. It never includes your name, email or account
-            ID.
+            Each request sends Google Gemini your rated titles (title, movie/TV, year, genres, your
+            reaction and personal tags), your chosen genres, and the request details. That can
+            include the title you’re asking about, your filters and the mood you type. It never
+            includes your name, email or account ID.
           </li>
           <li>
             Requests use your own Gemini API key, under Google’s Gemini API terms. Google’s data use
