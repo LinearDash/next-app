@@ -1,12 +1,13 @@
-import Link from "next/link";
 import { randomUUID } from "node:crypto";
-import { aiAvailability, latestVerdict } from "@/lib/ai";
-import { readAccount } from "@/lib/account";
-import { TASTE_BUDGET } from "@/lib/ai-contract";
+import Link from "next/link";
+
 import { VerdictForm } from "@/components/ai-controls";
-import { personalTitle } from "@/lib/library";
 import { PersonalControls, DismissControl } from "@/components/personal-controls";
+import { aiAvailability, latestVerdict } from "@/lib/ai";
+import { TASTE_BUDGET } from "@/lib/ai-contract";
 import type { MediaType } from "@/lib/catalog";
+import { readAccount } from "@/lib/account";
+import { personalTitle } from "@/lib/library";
 
 export async function PersonalPanel({ mediaType, id }: { mediaType: MediaType; id: number }) {
   let personal;
@@ -14,23 +15,29 @@ export async function PersonalPanel({ mediaType, id }: { mediaType: MediaType; i
     personal = await personalTitle(mediaType, id);
   } catch {
     return (
-      <div className="notice" role="status">
-        <p>Your personal library is temporarily unavailable. Please refresh to try again.</p>
-      </div>
+      <aside className="title-personal-panel" aria-label="Your library">
+        <h2>Your library</h2>
+        <p className="notice" role="status">
+          Your personal library is temporarily unavailable. Please refresh to try again.
+        </p>
+      </aside>
     );
   }
   if (!personal)
     return (
-      <p className="notice">
-        <Link className="text-link" href="/login">
-          Sign in to save this title and add your own reaction →
-        </Link>
-      </p>
+      <aside className="title-personal-panel" aria-label="Your library">
+        <h2>Your library</h2>
+        <p className="notice">
+          <Link className="text-link" href="/login">
+            Sign in to save this title and add your own reaction →
+          </Link>
+        </p>
+      </aside>
     );
   return (
-    <section className="personal-panel" aria-label="Your library">
+    <aside className="personal-panel title-personal-panel" aria-label="Your library">
       <h2>Your library</h2>
-      <PersonalControls mediaType={mediaType} id={id} entry={personal.entry} />
+      <PersonalControls mediaType={mediaType} id={id} entry={personal.entry} compact />
       <DismissControl mediaType={mediaType} id={id} dismissed={personal.dismissed} />
       {(await aiAvailability()) === "ok" && (
         <VerdictForm
@@ -41,7 +48,7 @@ export async function PersonalPanel({ mediaType, id }: { mediaType: MediaType; i
           saved={await savedVerdict(mediaType, id)}
         />
       )}
-    </section>
+    </aside>
   );
 }
 
